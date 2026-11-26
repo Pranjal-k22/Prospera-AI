@@ -1,79 +1,234 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useId, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { Check } from 'lucide-react';
 
-export interface GenerateButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  /** 
-   * Highlight hue in degrees (0-360). Default: 210 (Sapphire Blue).
-   */
-  hue?: number;
+export type GenerateButtonTone = 'amber' | 'emerald' | 'blue' | 'cyan' | 'rose';
+export type GenerateButtonVariant = 'solid' | 'frosted';
+export type GenerateButtonSize = 'sm' | 'md' | 'lg';
+export type GenerateButtonStatus = 'idle' | 'generating' | 'success' | 'error';
+
+export const TONE_HUES: Record<GenerateButtonTone, number> = {
+  amber: 37,
+  emerald: 150,
+  blue: 210,
+  cyan: 172,
+  rose: 350,
+};
+
+export interface GenerateButtonProps
+  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'children'> {
   /**
-   * Controlled async state: true while an AI generative process is running.
+   * Semantic color tone (maps to hue):
+   * - amber: 37 (default, general AI actions)
+   * - emerald: 150 (valuation, approval, success)
+   * - blue: 210 (summaries, reports, info)
+   * - cyan: 172 (telemetry, broker cockpit)
+   * - rose: 350 (risk analysis)
+   */
+  tone?: GenerateButtonTone;
+  /**
+   * Surface variant:
+   * - solid: premium opaque pill (ink in light, slate in dark)
+   * - frosted: translucent glass with backdrop-filter (for hero/photo backgrounds)
+   */
+  variant?: GenerateButtonVariant;
+  /**
+   * Button size scale: sm (36px), md (44px, default), lg (52px).
+   * All sizes maintain >= 44px touch target.
+   */
+  size?: GenerateButtonSize;
+  /**
+   * Controlled execution status driven by real async state.
+   */
+  status?: GenerateButtonStatus;
+  /**
+   * Backwards-compatible alias for status === 'generating'.
    */
   isGenerating?: boolean;
   /**
-   * Idle label. Default: "Generate"
+   * Primary idle label. Default: "Generate"
+   */
+  label?: string;
+  /**
+   * Backwards-compatible alias for label.
    */
   text?: string;
   /**
-   * Generating label. Default: "Generating..."
+   * Label shown while generating. Default: "Generating"
+   */
+  generatingLabel?: string;
+  /**
+   * Backwards-compatible alias for generatingLabel.
    */
   generatingText?: string;
   /**
-   * Optional brief completion label shown on completion. Default: "Confirmed"
+   * Label shown on success. Default: "Done"
+   */
+  successLabel?: string;
+  /**
+   * Backwards-compatible alias for successLabel.
    */
   successText?: string;
   /**
-   * Button size scale: sm (32px), md (40px), lg (48px). Default: "md"
+   * Label shown on error. Default: "Try again"
    */
-  size?: 'sm' | 'md' | 'lg';
+  errorLabel?: string;
+  /**
+   * Advanced manual hue override in degrees (0-360).
+   */
+  hue?: number;
   /**
    * Whether to stretch full width of container.
    */
   fullWidth?: boolean;
   /**
-   * Custom icon element (replaces default sparkles).
+   * Custom leading icon (replaces default sparkles).
    */
   icon?: React.ReactNode;
+  /**
+   * Callback fired when a success/error state settles and resets back to idle.
+   */
+  onSettled?: () => void;
 }
 
 export const GenerateButton = React.forwardRef<HTMLButtonElement, GenerateButtonProps>(
   (
     {
-      hue = 210,
-      isGenerating = false,
-      text = 'Generate',
-      generatingText = 'Generating...',
-      successText = 'Completed',
+      tone = 'amber',
+      variant = 'solid',
       size = 'md',
+      status,
+      isGenerating,
+      label,
+      text,
+      generatingLabel,
+      generatingText,
+      successLabel,
+      successText,
+      errorLabel = 'Try again',
+      hue: customHue,
       fullWidth = false,
       icon,
       className,
-      disabled,
+      disabled = false,
       style,
       onClick,
+      onSettled,
+      'aria-label': ariaLabelProp,
       ...props
     },
     ref
   ) => {
-    const [showSuccess, setShowSuccess] = useState(false);
-    const prevGenerating = useRef(isGenerating);
+    // Resolve labels with backwards compatibility
+    const currentIdleLabel = label ?? text ?? 'Generate';
+    const currentGeneratingLabel = generatingLabel ?? generatingText ?? 'Generating';
+    const currentSuccessLabel = successLabel ?? successText ?? 'Done';
+    const currentErrorLabel = errorLabel;
 
-    // Watch for generation completion transition to show brief confirmation
+    // Resolve hue from tone or manual override
+    const activeHue = customHue ?? TONE_HUES[tone] ?? 37;
+
+    // Controlled vs derived status
+    const effectivePropStatus: GenerateButtonStatus =
+      status ?? (isGenerating ? 'generating' : 'idle');
+
+    // Local transient status for smooth auto-reset on completion
+    const [localStatus, setLocalStatus] = useState<GenerateButtonStatus>(effectivePropStatus);
+    const prevPropStatus = useRef<GenerateButtonStatus>(effectivePropStatus);
+    const resetTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Watch status transitions
     useEffect(() => {
-      if (prevGenerating.current && !isGenerating) {
-        setShowSuccess(true);
-        const timer = setTimeout(() => setShowSuccess(false), 1200);
-        return () => clearTimeout(timer);
-      }
-      prevGenerating.current = isGenerating;
-    }, [isGenerating]);
+      const prev = prevPropStatus.current;
+      const next = effectivePropStatus;
+      prevPropStatus.current = next;
 
-    // Compute min width for the text wrapper so it never abruptly shifts size
-    const maxLen = Math.max(text.length, generatingText.length, successText.length);
-    const minWidthEm = Math.max(5.8, maxLen * 0.62 + 0.3);
+      if (resetTimerRef.current) {
+        clearTimeout(resetTimerRef.current);
+        resetTimerRef.current = null;
+      }
+
+      if (next === 'generating') {
+        setLocalStatus('generating');
+      } else if (next === 'success') {
+        setLocalStatus('success');
+        resetTimerRef.current = setTimeout(() => {
+          setLocalStatus('idle');
+          onSettled?.();
+        }, 1400);
+      } else if (next === 'error') {
+        setLocalStatus('error');
+        resetTimerRef.current = setTimeout(() => {
+          setLocalStatus('idle');
+          onSettled?.();
+        }, 2500);
+      } else if (prev === 'generating' && next === 'idle') {
+        // Transition from generating -> idle without explicit success: show brief success confirmation
+        setLocalStatus('success');
+        resetTimerRef.current = setTimeout(() => {
+          setLocalStatus('idle');
+          onSettled?.();
+        }, 1200);
+      } else {
+        setLocalStatus(next);
+      }
+
+      return () => {
+        if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+      };
+    }, [effectivePropStatus, onSettled]);
+
+    const activeStatus = localStatus;
+    const isBusy = activeStatus === 'generating';
+    const isSuccess = activeStatus === 'success';
+    const isError = activeStatus === 'error';
+
+    // Accessible announcements ID
+    const liveRegionId = useId();
+
+    // Determine current voiceover string
+    const currentVoiceLabel = isSuccess
+      ? currentSuccessLabel
+      : isError
+      ? currentErrorLabel
+      : isBusy
+      ? currentGeneratingLabel
+      : currentIdleLabel;
+
+    const accessibleLabel = ariaLabelProp ?? currentVoiceLabel;
+
+    // Handle click with double-submit guard
+    const handleClick = useCallback(
+      (e: React.MouseEvent<HTMLButtonElement>) => {
+        if (disabled || isBusy) {
+          e.preventDefault();
+          return;
+        }
+        if (isError) {
+          // Clicking on error state immediately resets to idle
+          if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+          setLocalStatus('idle');
+          onSettled?.();
+        }
+        onClick?.(e);
+      },
+      [disabled, isBusy, isError, onClick, onSettled]
+    );
+
+    // Helper to render letter spans with inline variable index (--i)
+    const renderLetters = (str: string) => {
+      return str.split('').map((char, i) => (
+        <span
+          key={i}
+          className="gen-letter"
+          style={{ '--i': i } as React.CSSProperties}
+          aria-hidden="true"
+        >
+          {char === ' ' ? '\u00A0' : char}
+        </span>
+      ));
+    };
 
     const sizeClass = {
       sm: 'gen-btn-sm',
@@ -81,91 +236,143 @@ export const GenerateButton = React.forwardRef<HTMLButtonElement, GenerateButton
       lg: 'gen-btn-lg',
     }[size];
 
-    const currentLabel = showSuccess ? successText : isGenerating ? generatingText : text;
-
     return (
       <div className={cn('gen-btn-container', fullWidth && 'w-full')}>
         <button
           ref={ref}
           type="button"
-          aria-label={currentLabel}
-          aria-busy={isGenerating}
-          aria-live="polite"
-          data-generating={isGenerating}
-          disabled={disabled || isGenerating}
+          disabled={disabled || isBusy}
+          aria-label={accessibleLabel}
+          aria-busy={isBusy}
+          aria-describedby={liveRegionId}
+          data-status={activeStatus}
+          data-tone={tone}
+          data-variant={variant}
+          data-size={size}
+          data-disabled={disabled ? 'true' : undefined}
+          onClick={handleClick}
           style={
             {
-              '--highlight-color-hue': `${hue}deg`,
+              '--gen-hue': `${activeHue}`,
               ...style,
             } as React.CSSProperties
           }
           className={cn(
             'gen-btn',
             sizeClass,
+            variant === 'frosted' && 'gen-frosted',
             fullWidth && 'w-full',
             className
           )}
-          onClick={onClick}
           {...props}
         >
-          {/* Leading Sparkle SVG or Success Checkmark */}
-          {showSuccess ? (
-            <Check className="mr-1.5 h-4 w-4 text-[#30C48D] animate-in zoom-in-75 duration-200" strokeWidth={2.5} />
-          ) : icon ? (
-            <span className="mr-2 inline-flex items-center text-white/90">{icon}</span>
-          ) : (
-            <svg
-              className="gen-btn-svg"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path
+          {/* Accessible Touch Target Expander for Small buttons (>= 44px) */}
+          {size === 'sm' && <span className="gen-touch-expand" aria-hidden="true" />}
+
+          {/* Leading Icon: Morphing Sparkles -> Success Checkmark -> Error Alert */}
+          <span className="gen-icon-wrap" aria-hidden="true">
+            {isSuccess ? (
+              <svg
+                className="w-4 h-4 text-[#75c994]"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"
-              />
-            </svg>
-          )}
-
-          {/* Letter container hidden from screen readers (announced via button aria-label) */}
-          <div
-            className="gen-txt-wrapper"
-            style={{ minWidth: `${minWidthEm}em` }}
-            aria-hidden="true"
-          >
-            {showSuccess ? (
-              <span className="text-white font-semibold text-xs tracking-wide">
-                {successText}
-              </span>
+              >
+                <path className="gen-check-path" d="M20 6 9 17l-5-5" />
+              </svg>
+            ) : isError ? (
+              <svg
+                className="w-4 h-4 text-[#ff6b6b]"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+            ) : icon ? (
+              icon
             ) : (
-              <>
-                <div className="gen-txt-1">
-                  {text.split('').map((letter, i) => (
-                    <span
-                      key={`t1-${i}`}
-                      className="gen-btn-letter"
-                      style={{ animationDelay: `${i * 0.06}s` }}
-                    >
-                      {letter === ' ' ? '\u00A0' : letter}
-                    </span>
-                  ))}
-                </div>
-                <div className="gen-txt-2">
-                  {generatingText.split('').map((letter, i) => (
-                    <span
-                      key={`t2-${i}`}
-                      className="gen-btn-letter"
-                      style={{ animationDelay: `${i * 0.06}s` }}
-                    >
-                      {letter === ' ' ? '\u00A0' : letter}
-                    </span>
-                  ))}
-                </div>
-              </>
+              <svg
+                className="gen-sparkle-svg"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z" />
+                <path d="M5 3v4" />
+                <path d="M19 17v4" />
+                <path d="M3 5h4" />
+                <path d="M17 19h4" />
+              </svg>
             )}
+          </span>
+
+          {/* CSS Grid Stack: All label states share grid-area: 1 / 1.
+              Container width is sized to the LONGEST label so the button never clips or jumps width! */}
+          <div className="gen-grid-stack">
+            {/* 1. Idle Slot */}
+            <span
+              className="gen-label-slot"
+              data-active={activeStatus === 'idle'}
+              aria-hidden="true"
+            >
+              {renderLetters(currentIdleLabel)}
+            </span>
+
+            {/* 2. Generating Slot */}
+            <span
+              className="gen-label-slot"
+              data-active={activeStatus === 'generating'}
+              aria-hidden="true"
+            >
+              {renderLetters(currentGeneratingLabel)}
+            </span>
+
+            {/* 3. Success Slot */}
+            <span
+              className="gen-label-slot text-[#75c994]"
+              data-active={activeStatus === 'success'}
+              aria-hidden="true"
+            >
+              {renderLetters(currentSuccessLabel)}
+            </span>
+
+            {/* 4. Error Slot */}
+            <span
+              className="gen-label-slot text-[#ff6b6b]"
+              data-active={activeStatus === 'error'}
+              aria-hidden="true"
+            >
+              {renderLetters(currentErrorLabel)}
+            </span>
           </div>
+
+          {/* Reduced-Motion Fallback Sweep line inside pill */}
+          <span className="gen-motion-sweep" aria-hidden="true" />
         </button>
+
+        {/* Visually hidden aria-live polite region for screen readers */}
+        <span id={liveRegionId} className="sr-only" aria-live="polite">
+          {isBusy
+            ? 'Generating'
+            : isSuccess
+            ? 'Done'
+            : isError
+            ? 'Failed, try again'
+            : ''}
+        </span>
       </div>
     );
   }

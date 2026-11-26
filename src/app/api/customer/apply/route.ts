@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     const token = cookieStore.get('token')?.value;
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     
-    const user = await verifyAuth(token) as any;
+    const user = (await verifyAuth(token)) as { name?: string; email?: string } | null;
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     await connectToDatabase();
@@ -68,8 +68,8 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ success: true, leadId: lead._id }, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "An error occurred" }, { status: 500 });
   }
 }
 
@@ -79,7 +79,7 @@ export async function DELETE(req: Request) {
     const token = cookieStore.get('token')?.value;
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     
-    const user = await verifyAuth(token) as any;
+    const user = (await verifyAuth(token)) as { name?: string; email?: string } | null;
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { searchParams } = new URL(req.url);
@@ -100,7 +100,7 @@ export async function DELETE(req: Request) {
     await lead.save();
 
     return NextResponse.json({ success: true }, { status: 200 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "An error occurred" }, { status: 500 });
   }
 }

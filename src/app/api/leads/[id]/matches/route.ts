@@ -89,25 +89,25 @@ Output JSON strictly matching this schema:
     
     try {
       matchData = JSON.parse(text);
-    } catch (e) {
+    } catch {
       const match = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
       if (match) {
         matchData = JSON.parse(match[1]);
       } else {
-        throw e;
+        throw new Error('Failed to parse AI output');
       }
     }
 
     if (matchData.matches && Array.isArray(matchData.matches)) {
-      matchData.matches = matchData.matches.map((m: any, idx: number) => ({
+      matchData.matches = matchData.matches.map((m: Record<string, unknown>, idx: number) => ({
         ...m,
         images: globalImageSets[idx % globalImageSets.length]
       }));
     }
 
     return NextResponse.json(matchData, { status: 200 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating matches:', error);
-    return NextResponse.json({ error: error.message || 'Matching failed' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Matching failed' }, { status: 500 });
   }
 }

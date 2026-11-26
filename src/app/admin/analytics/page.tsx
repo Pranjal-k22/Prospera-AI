@@ -4,10 +4,42 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   PieChart, Pie, Cell
 } from 'recharts';
+import { GenerateButton } from '@/components/ui/generate-button';
+import { useToast } from '@/components/ui/Toast';
+
+interface AnalyticsLead {
+  _id: string;
+  name: string;
+  budget?: string;
+  status?: string;
+  createdAt: string;
+  analysis?: {
+    scores?: {
+      match?: number;
+      intent?: number;
+      timeline?: number;
+    };
+  };
+  aiMatchRecommendations?: Array<{ match_score?: number }>;
+}
 
 export default function AnalyticsDashboard() {
-  const [leads, setLeads] = useState<any[]>([]);
+  const toast = useToast();
+  const [leads, setLeads] = useState<AnalyticsLead[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reportStatus, setReportStatus] = useState<'idle' | 'generating' | 'success' | 'error'>('idle');
+
+  const handleGenerateReport = () => {
+    if (reportStatus === 'generating') return;
+    setReportStatus('generating');
+    setTimeout(() => {
+      setReportStatus('success');
+      toast.success(
+        'Analytics Report Generated',
+        'Comprehensive quarterly deal velocity and pricing telemetry ready for review.'
+      );
+    }, 1200);
+  };
 
   useEffect(() => {
     fetch('/api/leads')
@@ -46,16 +78,18 @@ export default function AnalyticsDashboard() {
         }
       }
 
-      if (statusCounts[lead.status] !== undefined) {
-        statusCounts[lead.status]++;
+      const statusKey = lead.status || 'new';
+      if (statusCounts[statusKey] !== undefined) {
+        statusCounts[statusKey]++;
       } else {
-        statusCounts[lead.status] = 1;
+        statusCounts[statusKey] = 1;
       }
 
       if (lead.status === 'closed' || lead.status === 'approved') closedCount++;
 
-      if (lead.analysis?.scores?.match > 0) {
-        totalScore += lead.analysis.scores.match;
+      const matchScore = lead.analysis?.scores?.match;
+      if (typeof matchScore === 'number' && matchScore > 0) {
+        totalScore += matchScore;
         scoredLeads++;
       }
     });
@@ -89,10 +123,20 @@ export default function AnalyticsDashboard() {
 
   return (
     <main className="flex-1 overflow-auto px-6 pb-12 pt-8 lg:px-10">
-      <div className="mb-8">
-        <p className="eyebrow mb-1 text-[#f3bd65]">Performance Telemetry</p>
-        <h1 className="font-display text-3xl font-bold text-white tracking-tight">Analytics Dashboard</h1>
-        <p className="text-sm text-[#8c94a0] mt-1">Real-time pipeline momentum and portfolio metrics.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <div>
+          <p className="eyebrow mb-1 text-[#f3bd65]">Performance Telemetry</p>
+          <h1 className="font-display text-3xl font-bold text-white tracking-tight">Analytics Dashboard</h1>
+          <p className="text-sm text-[#8c94a0] mt-1">Real-time pipeline momentum and portfolio metrics.</p>
+        </div>
+        <GenerateButton
+          tone="blue"
+          label="Generate report"
+          generatingLabel="Compiling..."
+          successLabel="Report Ready"
+          status={reportStatus}
+          onClick={handleGenerateReport}
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

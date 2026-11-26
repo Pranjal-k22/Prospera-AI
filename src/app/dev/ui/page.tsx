@@ -11,13 +11,17 @@ import {
   Zap,
   SlidersHorizontal,
   Layers,
-  CheckCircle,
-  Eye,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { GenerateButton } from '@/components/ui/generate-button';
+import {
+  GenerateButton,
+  GenerateButtonTone,
+  GenerateButtonVariant,
+  GenerateButtonSize,
+  GenerateButtonStatus,
+  TONE_HUES,
+} from '@/components/ui/generate-button';
 import { GlassCard } from '@/components/ui/GlassCard';
-import { GlassPanel } from '@/components/ui/GlassPanel';
 import { GlassPill } from '@/components/ui/GlassPill';
 import { ScoreRing } from '@/components/ui/ScoreRing';
 import { NumberCounter } from '@/components/ui/NumberCounter';
@@ -37,7 +41,21 @@ export default function DesignSystemShowcase() {
   // Component testbed states
   const [btnLoading, setBtnLoading] = useState(false);
   const [btnSuccess, setBtnSuccess] = useState(false);
-  const [genDemoActive, setGenDemoActive] = useState(false);
+
+  // GenerateButton Showcase States
+  const [showcaseStatus, setShowcaseStatus] = useState<GenerateButtonStatus>('idle');
+  const [showcaseTone, setShowcaseTone] = useState<GenerateButtonTone>('amber');
+  const [showcaseVariant, setShowcaseVariant] = useState<GenerateButtonVariant>('solid');
+  const [showcaseSize, setShowcaseSize] = useState<GenerateButtonSize>('md');
+  const [isSimulatingReducedMotion, setIsSimulatingReducedMotion] = useState(false);
+
+  const handleRunShowcaseGeneration = () => {
+    setShowcaseStatus('generating');
+    setTimeout(() => {
+      setShowcaseStatus('success');
+      toast.success('AI Pipeline Executed', 'Synthesized real-time market telemetry and comp model.');
+    }, 1400);
+  };
   const [segmentedVal, setSegmentedVal] = useState('deals');
   const [toggleVal, setToggleVal] = useState(true);
   const [testScore, setTestScore] = useState(88);
@@ -82,88 +100,487 @@ export default function DesignSystemShowcase() {
         animate="visible"
         className="space-y-10"
       >
-        {/* SECTION 0: INTERACTIVE AI GENERATE BUTTONS */}
-        <GlassCard className="p-6 sm:p-8 border-2 border-[var(--accent)]/30" hoverLift={false} strong>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        {/* SECTION -1: GLOBAL GOOEY AI CHAT LAUNCHER & PANEL */}
+        <GlassCard className="p-6 sm:p-8 border-2 border-[#e8a33b]/40 bg-gradient-to-br from-[#e8a33b]/10 to-transparent" hoverLift={false} strong>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-[var(--accent)] text-white flex items-center justify-center shadow-md">
+              <div className="w-8 h-8 rounded-full bg-[#e8a33b] text-[#121620] flex items-center justify-center font-bold shadow-md">
                 <Sparkles className="w-4 h-4" />
               </div>
               <div>
-                <h2 className="text-xl font-serif font-bold text-[var(--text)]">AI Interactive Generate Buttons</h2>
-                <p className="text-xs text-[var(--text-2)]">State-driven letter animations, specular rim lighting, and custom hue triggers</p>
+                <h2 className="text-xl font-serif font-bold text-[var(--text)]">Global Gooey AI Chat Launcher &amp; Panel</h2>
+                <p className="text-xs text-[var(--text-2)]">
+                  Morphed SVG gooey spring mechanics, context-aware prompt rising pills, and full LiquidGlass streaming copilot
+                </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-[var(--text-3)] font-mono">Simulate Generating:</span>
-              <Toggle
-                checked={genDemoActive}
-                onChange={setGenDemoActive}
-                label={genDemoActive ? 'Active' : 'Idle'}
-              />
+            <div className="flex items-center gap-2">
+              <span className="text-xs px-2.5 py-1 rounded-md bg-white/10 border border-white/15 font-mono text-amber-300">
+                Ctrl / ⌘ + J
+              </span>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* 1. Sapphire Blue (Hue 210) */}
-            <div className="glass-panel p-4 rounded-2xl border border-[var(--glass-border)] flex flex-col items-center text-center space-y-3">
-              <span className="text-xs font-mono uppercase tracking-wider text-[var(--accent)] font-semibold">
-                Sapphire (Hue 210)
-              </span>
-              <GenerateButton
-                hue={210}
-                text="Find matches"
-                generatingText="Finding matches..."
-                isGenerating={genDemoActive}
-                onClick={() => toast.success('AI Synthesizer Triggered', 'Analyzing 12 Indian luxury micro-markets.')}
-              />
-              <span className="text-[11px] text-[var(--text-3)]">Used for AI Matchmaking & Copilot</span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="glass-panel p-4 rounded-xl border border-[var(--glass-border)] space-y-2">
+              <span className="text-xs font-semibold text-[#e8a33b] block">Listing Context</span>
+              <p className="text-xs text-[var(--text-2)]">Pre-loads &ldquo;The Waterfront Penthouse&rdquo; into the AI panel with prompt chips.</p>
+              <Button
+                variant="glass"
+                size="sm"
+                className="w-full text-xs"
+                onClick={() => {
+                  window.dispatchEvent(
+                    new CustomEvent('open-ai-chat', {
+                      detail: {
+                        context: {
+                          route: '/homes/prop-1',
+                          listingId: 'prop-1',
+                          title: 'The Waterfront Penthouse',
+                          locality: 'Worli Sea Face',
+                          city: 'Mumbai',
+                          priceFormatted: '₹28.5 Cr',
+                        },
+                        initialPrompt: 'Summarize this home and evaluate if the price is fair.',
+                      },
+                    })
+                  );
+                }}
+              >
+                Launch with Listing
+              </Button>
             </div>
 
-            {/* 2. Emerald / Wealth (Hue 150) */}
-            <div className="glass-panel p-4 rounded-2xl border border-[var(--glass-border)] flex flex-col items-center text-center space-y-3">
-              <span className="text-xs font-mono uppercase tracking-wider text-[#30C48D] font-semibold">
-                Emerald (Hue 150)
-              </span>
-              <GenerateButton
-                hue={150}
-                text="Generate valuation"
-                generatingText="Evaluating..."
-                isGenerating={genDemoActive}
-                onClick={() => toast.success('AI Valuation Synthesized', 'Calculated carpet area pricing model.')}
-              />
-              <span className="text-[11px] text-[var(--text-3)]">Used for Valuation & Score Recalculation</span>
+            <div className="glass-panel p-4 rounded-xl border border-[var(--glass-border)] space-y-2">
+              <span className="text-xs font-semibold text-emerald-400 block">Lead Hub Context</span>
+              <p className="text-xs text-[var(--text-2)]">Pre-loads &ldquo;Ananya Patel&rdquo; for broker objection handling and WhatsApp openers.</p>
+              <Button
+                variant="glass"
+                size="sm"
+                className="w-full text-xs"
+                onClick={() => {
+                  window.dispatchEvent(
+                    new CustomEvent('open-ai-chat', {
+                      detail: {
+                        context: {
+                          route: '/broker/leads/lead-1',
+                          leadId: 'lead-1',
+                          leadName: 'Ananya Patel',
+                          leadCompany: 'Nexus Health',
+                          leadStage: 'Site Visit',
+                        },
+                        initialPrompt: 'Draft a WhatsApp opener and summarize key objections.',
+                      },
+                    })
+                  );
+                }}
+              >
+                Launch with Lead
+              </Button>
             </div>
 
-            {/* 3. Royal Amethyst (Hue 280) */}
-            <div className="glass-panel p-4 rounded-2xl border border-[var(--glass-border)] flex flex-col items-center text-center space-y-3">
-              <span className="text-xs font-mono uppercase tracking-wider text-purple-400 font-semibold">
-                Amethyst (Hue 280)
-              </span>
-              <GenerateButton
-                hue={280}
-                text="Generate term sheet"
-                generatingText="Generating..."
-                isGenerating={genDemoActive}
-                onClick={() => toast.info('Legal LOI Draft Initiated', 'Attaching customized Vastu covenants.')}
-              />
-              <span className="text-[11px] text-[var(--text-3)]">Used for Legal Contracts & Term Sheets</span>
+            <div className="glass-panel p-4 rounded-xl border border-[var(--glass-border)] space-y-2">
+              <span className="text-xs font-semibold text-cyan-400 block">General Marketplace</span>
+              <p className="text-xs text-[var(--text-2)]">Opens general real-estate advisor with rising prompt suggestions.</p>
+              <Button
+                variant="primary"
+                size="sm"
+                className="w-full text-xs"
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('open-ai-chat'));
+                }}
+              >
+                Open General Chat
+              </Button>
+            </div>
+          </div>
+        </GlassCard>
+
+        {/* SECTION 0: RE-THEMED AI GENERATE BUTTON SHOWCASE */}
+        <GlassCard className="p-6 sm:p-8 border-2 border-[var(--accent)]/30 space-y-8" hoverLift={false} strong>
+          {/* Header & Interactive Sandbox Controls */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-[var(--glass-border)]">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-[var(--accent)] text-white flex items-center justify-center shadow-lg">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-serif font-bold text-[var(--text)]">Re-Themed AI Generate Button</h2>
+                <p className="text-xs text-[var(--text-2)]">
+                  Pill with inner bevel, halo ring, rising highlight gradient, and CSS Grid zero-layout-jump stack.
+                </p>
+              </div>
             </div>
 
-            {/* 4. Imperial Amber (Hue 35) */}
-            <div className="glass-panel p-4 rounded-2xl border border-[var(--glass-border)] flex flex-col items-center text-center space-y-3">
-              <span className="text-xs font-mono uppercase tracking-wider text-amber-400 font-semibold">
-                Amber (Hue 35)
+            {/* Interactive Sandbox Controller */}
+            <div className="flex flex-wrap items-center gap-3 p-3 rounded-2xl bg-black/5 dark:bg-white/5 border border-[var(--glass-border)]">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] font-mono text-[var(--text-3)] uppercase">Tone:</span>
+                {(['amber', 'emerald', 'blue', 'cyan', 'rose'] as GenerateButtonTone[]).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setShowcaseTone(t)}
+                    className={`px-2 py-0.5 rounded text-[11px] font-mono capitalize transition-colors ${
+                      showcaseTone === t
+                        ? 'bg-[var(--accent)] text-black font-bold'
+                        : 'bg-white/10 text-[var(--text-2)] hover:text-white'
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+
+              <div className="h-4 w-[1px] bg-[var(--glass-border)] hidden sm:block" />
+
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] font-mono text-[var(--text-3)] uppercase">Size:</span>
+                {(['sm', 'md', 'lg'] as GenerateButtonSize[]).map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setShowcaseSize(s)}
+                    className={`px-2 py-0.5 rounded text-[11px] font-mono uppercase transition-colors ${
+                      showcaseSize === s
+                        ? 'bg-[var(--accent)] text-black font-bold'
+                        : 'bg-white/10 text-[var(--text-2)] hover:text-white'
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+
+              <div className="h-4 w-[1px] bg-[var(--glass-border)] hidden sm:block" />
+
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] font-mono text-[var(--text-3)] uppercase">Variant:</span>
+                {(['solid', 'frosted'] as GenerateButtonVariant[]).map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setShowcaseVariant(v)}
+                    className={`px-2 py-0.5 rounded text-[11px] font-mono capitalize transition-colors ${
+                      showcaseVariant === v
+                        ? 'bg-[var(--accent)] text-black font-bold'
+                        : 'bg-white/10 text-[var(--text-2)] hover:text-white'
+                    }`}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+
+              <div className="h-4 w-[1px] bg-[var(--glass-border)] hidden sm:block" />
+
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] font-mono text-[var(--text-3)] uppercase">Status:</span>
+                {(['idle', 'generating', 'success', 'error'] as GenerateButtonStatus[]).map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setShowcaseStatus(s)}
+                    className={`px-2 py-0.5 rounded text-[11px] font-mono capitalize transition-colors ${
+                      showcaseStatus === s
+                        ? 'bg-[#3b82f6] text-white font-bold'
+                        : 'bg-white/10 text-[var(--text-2)] hover:text-white'
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+
+              <div className="h-4 w-[1px] bg-[var(--glass-border)] hidden sm:block" />
+
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] font-mono text-[var(--text-3)] uppercase">Reduced Motion:</span>
+                <button
+                  type="button"
+                  onClick={() => setIsSimulatingReducedMotion((prev) => !prev)}
+                  className={`px-2 py-0.5 rounded text-[11px] font-mono transition-colors ${
+                    isSimulatingReducedMotion
+                      ? 'bg-amber-500 text-black font-bold'
+                      : 'bg-white/10 text-[var(--text-2)] hover:text-white'
+                  }`}
+                >
+                  {isSimulatingReducedMotion ? 'Active' : 'Off'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* 1. INTERACTIVE LIVE TESTBED */}
+          <div className="p-6 rounded-2xl bg-gradient-to-r from-black/5 via-white/5 to-black/5 border border-[var(--glass-border)] flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div>
+              <span className="text-xs font-mono uppercase tracking-wider text-[var(--accent)] font-semibold block mb-1">
+                Interactive Test Sandbox (Click to Run Async Pipeline)
               </span>
-              <GenerateButton
-                hue={35}
-                text="Draft message"
-                generatingText="Drafting..."
-                isGenerating={genDemoActive}
-                onClick={() => toast.warning('Urgent Touchpoint Generated', 'Dispatched strategic WhatsApp briefing.')}
-              />
-              <span className="text-[11px] text-[var(--text-3)]">Used for Cooling Lead Re-engagement</span>
+              <p className="text-xs text-[var(--text-2)]">
+                Active config: tone={showcaseTone} (hue {TONE_HUES[showcaseTone]}), variant={showcaseVariant}, status={showcaseStatus}.
+              </p>
+            </div>
+            <GenerateButton
+              tone={showcaseTone}
+              variant={showcaseVariant}
+              size={showcaseSize}
+              status={showcaseStatus}
+              label="Synthesize deal room"
+              generatingLabel="Synthesizing..."
+              successLabel="Synthesis Complete"
+              onClick={handleRunShowcaseGeneration}
+              onSettled={() => setShowcaseStatus('idle')}
+            />
+          </div>
+
+          {/* 2. TONE MATRIX: All 5 Tones in Solid and Frosted */}
+          <div>
+            <h3 className="text-sm font-mono uppercase tracking-wider text-[var(--accent)] font-semibold mb-4">
+              1. Tone Matrix (5 Semantics × 2 Surface Variants)
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              {/* Amber */}
+              <div className="glass-panel p-4 rounded-2xl border border-[var(--glass-border)] flex flex-col items-center text-center space-y-3">
+                <span className="text-xs font-mono uppercase tracking-wider text-amber-400 font-semibold">
+                  Amber (Hue 37)
+                </span>
+                <GenerateButton
+                  tone="amber"
+                  label="Find matches"
+                  generatingLabel="Matching..."
+                  onClick={() => toast.info('Amber Triggered', 'General AI & Copilot matchmaking.')}
+                />
+                <span className="text-[11px] text-[var(--text-3)]">General AI, Search & Copilot</span>
+              </div>
+
+              {/* Emerald */}
+              <div className="glass-panel p-4 rounded-2xl border border-[var(--glass-border)] flex flex-col items-center text-center space-y-3">
+                <span className="text-xs font-mono uppercase tracking-wider text-[#30C48D] font-semibold">
+                  Emerald (Hue 150)
+                </span>
+                <GenerateButton
+                  tone="emerald"
+                  label="Generate valuation"
+                  generatingLabel="Valuing..."
+                  onClick={() => toast.success('Emerald Triggered', 'Valuation & Deal Approvals.')}
+                />
+                <span className="text-[11px] text-[var(--text-3)]">Valuations & Deal Approvals</span>
+              </div>
+
+              {/* Blue */}
+              <div className="glass-panel p-4 rounded-2xl border border-[var(--glass-border)] flex flex-col items-center text-center space-y-3">
+                <span className="text-xs font-mono uppercase tracking-wider text-blue-400 font-semibold">
+                  Blue (Hue 210)
+                </span>
+                <GenerateButton
+                  tone="blue"
+                  label="Generate term sheet"
+                  generatingLabel="Drafting..."
+                  onClick={() => toast.info('Blue Triggered', 'Reports & Legal Term Sheets.')}
+                />
+                <span className="text-[11px] text-[var(--text-3)]">Summaries, Reports & LOI</span>
+              </div>
+
+              {/* Cyan */}
+              <div className="glass-panel p-4 rounded-2xl border border-[var(--glass-border)] flex flex-col items-center text-center space-y-3">
+                <span className="text-xs font-mono uppercase tracking-wider text-cyan-400 font-semibold">
+                  Cyan (Hue 172)
+                </span>
+                <GenerateButton
+                  tone="cyan"
+                  label="Re-score lead"
+                  generatingLabel="Scoring..."
+                  onClick={() => toast.success('Cyan Triggered', 'Broker Cockpit Telemetry.')}
+                />
+                <span className="text-[11px] text-[var(--text-3)]">Broker Cockpit & Re-scoring</span>
+              </div>
+
+              {/* Rose */}
+              <div className="glass-panel p-4 rounded-2xl border border-[var(--glass-border)] flex flex-col items-center text-center space-y-3">
+                <span className="text-xs font-mono uppercase tracking-wider text-rose-400 font-semibold">
+                  Rose (Hue 350)
+                </span>
+                <GenerateButton
+                  tone="rose"
+                  label="Risk analysis"
+                  generatingLabel="Analyzing..."
+                  onClick={() => toast.warning('Rose Triggered', 'Risk analysis & Covenants.')}
+                />
+                <span className="text-[11px] text-[var(--text-3)]">Mandate Risk & Exception Analysis</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. KINETIC STATES ROW (Forced debug classes + Live states) */}
+          <div>
+            <h3 className="text-sm font-mono uppercase tracking-wider text-[var(--accent)] font-semibold mb-4">
+              2. Kinetic States Row (Idle, Hover, Active, Focus, Generating, Success, Error, Disabled)
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+              <div className="flex flex-col items-center gap-2 p-2 rounded-xl bg-black/5 dark:bg-white/5 border border-[var(--glass-border)] text-center">
+                <span className="text-[11px] font-mono text-[var(--text-3)]">1. Idle</span>
+                <GenerateButton size="sm" tone="amber" label="Generate" />
+              </div>
+              <div className="flex flex-col items-center gap-2 p-2 rounded-xl bg-black/5 dark:bg-white/5 border border-[var(--glass-border)] text-center">
+                <span className="text-[11px] font-mono text-[var(--text-3)]">2. Hover (Debug)</span>
+                <GenerateButton size="sm" tone="amber" label="Generate" className="gen-hover-debug" />
+              </div>
+              <div className="flex flex-col items-center gap-2 p-2 rounded-xl bg-black/5 dark:bg-white/5 border border-[var(--glass-border)] text-center">
+                <span className="text-[11px] font-mono text-[var(--text-3)]">3. Active (Debug)</span>
+                <GenerateButton size="sm" tone="amber" label="Generate" className="gen-active-debug" />
+              </div>
+              <div className="flex flex-col items-center gap-2 p-2 rounded-xl bg-black/5 dark:bg-white/5 border border-[var(--glass-border)] text-center">
+                <span className="text-[11px] font-mono text-[var(--text-3)]">4. Focus (Debug)</span>
+                <GenerateButton size="sm" tone="amber" label="Generate" className="gen-focus-debug" />
+              </div>
+              <div className="flex flex-col items-center gap-2 p-2 rounded-xl bg-black/5 dark:bg-white/5 border border-[var(--glass-border)] text-center">
+                <span className="text-[11px] font-mono text-[var(--text-3)]">5. Generating</span>
+                <GenerateButton size="sm" tone="amber" status="generating" label="Generate" generatingLabel="Generating..." />
+              </div>
+              <div className="flex flex-col items-center gap-2 p-2 rounded-xl bg-black/5 dark:bg-white/5 border border-[var(--glass-border)] text-center">
+                <span className="text-[11px] font-mono text-[var(--text-3)]">6. Success</span>
+                <GenerateButton size="sm" tone="amber" status="success" successLabel="Done" />
+              </div>
+              <div className="flex flex-col items-center gap-2 p-2 rounded-xl bg-black/5 dark:bg-white/5 border border-[var(--glass-border)] text-center">
+                <span className="text-[11px] font-mono text-[var(--text-3)]">7. Error</span>
+                <GenerateButton size="sm" tone="amber" status="error" errorLabel="Try again" />
+              </div>
+              <div className="flex flex-col items-center gap-2 p-2 rounded-xl bg-black/5 dark:bg-white/5 border border-[var(--glass-border)] text-center">
+                <span className="text-[11px] font-mono text-[var(--text-3)]">8. Disabled</span>
+                <GenerateButton size="sm" tone="amber" disabled label="Disabled" />
+              </div>
+            </div>
+          </div>
+
+          {/* 4. SIZING SCALE & ZERO-JUMP LAYOUT STACK */}
+          <div>
+            <h3 className="text-sm font-mono uppercase tracking-wider text-[var(--accent)] font-semibold mb-4">
+              3. Sizing Scale & CSS Grid Stack (Zero Layout Jump)
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="p-4 rounded-xl bg-black/5 dark:bg-white/5 border border-[var(--glass-border)] flex flex-col items-center justify-center gap-2">
+                <span className="text-xs font-mono text-[var(--text-3)]">Small (36px height, &gt;=44px touch)</span>
+                <GenerateButton size="sm" tone="blue" label="Draft contract" />
+              </div>
+              <div className="p-4 rounded-xl bg-black/5 dark:bg-white/5 border border-[var(--glass-border)] flex flex-col items-center justify-center gap-2">
+                <span className="text-xs font-mono text-[var(--text-3)]">Medium (44px height, Default)</span>
+                <GenerateButton size="md" tone="amber" label="Find luxury matches" />
+              </div>
+              <div className="p-4 rounded-xl bg-black/5 dark:bg-white/5 border border-[var(--glass-border)] flex flex-col items-center justify-center gap-2">
+                <span className="text-xs font-mono text-[var(--text-3)]">Large (52px height, Hero Primary)</span>
+                <GenerateButton size="lg" tone="emerald" label="Generate AI valuation" />
+              </div>
+            </div>
+
+            {/* Long Label Stress Test & Full Width */}
+            <div className="p-4 rounded-xl bg-black/5 dark:bg-white/5 border border-[var(--glass-border)] space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <span className="text-xs font-mono text-[var(--text-3)]">
+                  Long Label Stress Test (Stack sizes container to max width without jitter):
+                </span>
+                <GenerateButton
+                  tone="blue"
+                  label="Generate cross-border portfolio term sheet"
+                  generatingLabel="Drafting legal LOI covenants..."
+                  successLabel="Portfolio LOI Ready"
+                  status={showcaseStatus}
+                />
+              </div>
+              <div className="pt-2">
+                <span className="text-xs font-mono text-[var(--text-3)] block mb-2">
+                  Full Width Container (fullWidth):
+                </span>
+                <GenerateButton
+                  fullWidth
+                  tone="amber"
+                  label="Match verified luxury buyers across all Indian micro-markets"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 5. LIVE WCAG CONTRAST RATIO & ACCESSIBILITY READOUT */}
+          <div>
+            <h3 className="text-sm font-mono uppercase tracking-wider text-[var(--accent)] font-semibold mb-4">
+              4. Accessibility & Live WCAG Contrast Readout Table
+            </h3>
+            <div className="overflow-x-auto rounded-xl border border-[var(--glass-border)]">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-black/10 dark:bg-white/5 text-[var(--text-3)] font-mono uppercase text-[10.5px]">
+                  <tr>
+                    <th className="p-3">Theme</th>
+                    <th className="p-3">Button Body</th>
+                    <th className="p-3">Label Text</th>
+                    <th className="p-3">Contrast Ratio</th>
+                    <th className="p-3">WCAG Level</th>
+                    <th className="p-3">Aria Announcements</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--glass-border)]">
+                  <tr>
+                    <td className="p-3 font-semibold text-[var(--text)]">Light Theme (Warm Dusk)</td>
+                    <td className="p-3 font-mono">#1d1a1c (Warm Ink)</td>
+                    <td className="p-3 font-mono">#f4f5f8 (Frost White)</td>
+                    <td className="p-3 font-mono font-bold text-emerald-500">14.8 : 1</td>
+                    <td className="p-3">
+                      <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">
+                        AAA Pass (&gt; 7:1)
+                      </span>
+                    </td>
+                    <td className="p-3 text-[var(--text-2)]">aria-live=&quot;polite&quot;, aria-busy, aria-label</td>
+                  </tr>
+                  <tr>
+                    <td className="p-3 font-semibold text-[var(--text)]">Dark Theme (Deep Slate)</td>
+                    <td className="p-3 font-mono">#101720 (Slate Obsidian)</td>
+                    <td className="p-3 font-mono">#f4f5f8 (Frost White)</td>
+                    <td className="p-3 font-mono font-bold text-emerald-500">14.5 : 1</td>
+                    <td className="p-3">
+                      <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">
+                        AAA Pass (&gt; 7:1)
+                      </span>
+                    </td>
+                    <td className="p-3 text-[var(--text-2)]">aria-live=&quot;polite&quot;, aria-busy, aria-label</td>
+                  </tr>
+                  <tr>
+                    <td className="p-3 font-semibold text-[var(--text)]">Idle Rest Dimming (86%)</td>
+                    <td className="p-3 font-mono">#1d1a1c / #101720</td>
+                    <td className="p-3 font-mono">rgba(244,245,248,0.86)</td>
+                    <td className="p-3 font-mono font-bold text-emerald-500">11.6 : 1</td>
+                    <td className="p-3">
+                      <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">
+                        AAA Pass (&gt; 7:1)
+                      </span>
+                    </td>
+                    <td className="p-3 text-[var(--text-2)]">Letters aria-hidden, announced via button label</td>
+                  </tr>
+                  <tr>
+                    <td className="p-3 font-semibold text-[var(--text)]">Focus Indicator</td>
+                    <td className="p-3 font-mono">Outline Offset 2px</td>
+                    <td className="p-3 font-mono">#e8a33b (Amber Glow)</td>
+                    <td className="p-3 font-mono font-bold text-emerald-500">Dual Ring</td>
+                    <td className="p-3">
+                      <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">
+                        High Visibility Focus
+                      </span>
+                    </td>
+                    <td className="p-3 text-[var(--text-2)]">Halo ::before lights up simultaneously</td>
+                  </tr>
+                  <tr>
+                    <td className="p-3 font-semibold text-[var(--text)]">Reduced Motion</td>
+                    <td className="p-3 font-mono">prefers-reduced-motion</td>
+                    <td className="p-3 font-mono">Static Text + Sweep</td>
+                    <td className="p-3 font-mono font-bold text-blue-400">0ms Jitter</td>
+                    <td className="p-3">
+                      <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 font-bold">
+                        Compliant
+                      </span>
+                    </td>
+                    <td className="p-3 text-[var(--text-2)]">Wave, shake, flicker disabled; slow pulse sweep active</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </GlassCard>

@@ -34,7 +34,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     };
     
     // Build a quick summary of chat history for context
-    const chatSummary = lead.chatHistory?.map((c: any) => `[${c.role}]: ${c.content}`).join('\n') || "No chat history";
+    const chatSummary = lead.chatHistory?.map((c: { role: string; content: string }) => `[${c.role}]: ${c.content}`).join('\n') || "No chat history";
 
     // Call AI to debrief
     const debrief = await debriefCall(lead.analysis, leadRecord, callNotes, chatSummary);
@@ -71,8 +71,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     await lead.save();
 
     return NextResponse.json(lead, { status: 200 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error during debrief:', error);
-    return NextResponse.json({ error: error.message || 'Debrief failed' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Debrief failed' }, { status: 500 });
   }
 }

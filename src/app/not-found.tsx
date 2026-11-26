@@ -3,8 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Compass, ArrowRight, Building2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Compass } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { GlassPill } from '@/components/ui/GlassPill';
 import { fadeInUp } from '@/lib/motion';

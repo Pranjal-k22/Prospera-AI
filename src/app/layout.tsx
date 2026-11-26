@@ -1,7 +1,22 @@
 import type { Metadata } from 'next';
-import { Outfit, Oswald, Playfair_Display, Dancing_Script } from 'next/font/google';
+import { Outfit, Oswald, Playfair_Display, Dancing_Script, Urbanist, Gilda_Display } from 'next/font/google';
 import './globals.css';
 import { ToastProvider } from '@/components/ui/Toast';
+import { AskAiLauncher } from '@/components/ai/AskAiLauncher';
+
+const urbanist = Urbanist({
+  subsets: ['latin'],
+  variable: '--font-urbanist',
+  display: 'swap',
+  weight: ['300', '400', '500', '600', '700', '800'],
+});
+
+const gilda = Gilda_Display({
+  subsets: ['latin'],
+  variable: '--font-gilda',
+  display: 'swap',
+  weight: ['400'],
+});
 
 const outfit = Outfit({
   subsets: ['latin'],
@@ -41,7 +56,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${outfit.variable} ${oswald.variable} ${playfair.variable} ${cursive.variable}`}
+      className={`${urbanist.variable} ${gilda.variable} ${outfit.variable} ${oswald.variable} ${playfair.variable} ${cursive.variable}`}
       suppressHydrationWarning
     >
       <body className="antialiased bg-[#0a0d12] text-[#e7eaf0]">
@@ -49,6 +64,7 @@ export default function RootLayout({
           <div className="app-shell">
             {children}
           </div>
+          <AskAiLauncher />
         </ToastProvider>
       </body>
     </html>

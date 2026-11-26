@@ -3,37 +3,32 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   TrendingUp,
   Flame,
   AlertTriangle,
   Clock,
   Search,
-  Filter,
   ArrowUpRight,
   PhoneCall,
   Calendar,
   Sparkles,
   ChevronRight,
-  Send,
   Building,
-  CheckCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GenerateButton } from '@/components/ui/generate-button';
 import { GlassCard } from '@/components/ui/GlassCard';
-import { GlassPanel } from '@/components/ui/GlassPanel';
 import { GlassPill } from '@/components/ui/GlassPill';
 import { ScoreRing } from '@/components/ui/ScoreRing';
 import { NumberCounter } from '@/components/ui/NumberCounter';
 import { Sparkline } from '@/components/ui/Sparkline';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
-import { Input } from '@/components/ui/input';
 import { Modal } from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
 import { MOCK_LEADS, Lead } from '@/lib/mock';
-import { fadeInUp, staggerContainer } from '@/lib/motion';
+import { staggerContainer } from '@/lib/motion';
 
 export default function BrokerDeskPage() {
   const router = useRouter();
@@ -45,6 +40,15 @@ export default function BrokerDeskPage() {
   const [sortBy, setSortBy] = useState<'score' | 'value' | 'recent'>('score');
   const [reengageLead, setReengageLead] = useState<Lead | null>(null);
   const [reengageSending, setReengageSending] = useState(false);
+  const [draftingLeadId, setDraftingLeadId] = useState<string | null>(null);
+
+  const handleTriggerDraft = (lead: Lead) => {
+    setDraftingLeadId(lead.id);
+    setTimeout(() => {
+      setDraftingLeadId(null);
+      setReengageLead(lead);
+    }, 750);
+  };
 
   // Compute KPI metrics
   const totalPipelineCr = useMemo(() => {
@@ -248,7 +252,7 @@ export default function BrokerDeskPage() {
 
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
+                onChange={(e) => setSortBy(e.target.value as 'score' | 'value')}
                 aria-label="Sort leads by"
                 className="bg-[var(--glass-subtle)] border border-[var(--glass-border)] text-xs text-[var(--text-2)] px-3 py-1.5 rounded-full outline-none cursor-pointer focus:border-[var(--accent)]"
               >
@@ -451,11 +455,13 @@ export default function BrokerDeskPage() {
                     </div>
 
                     <GenerateButton
-                      hue={35}
-                      text="AI Draft"
-                      generatingText="Drafting..."
-                      onClick={() => setReengageLead(coolLead)}
-                      className="text-xs py-1"
+                      tone="amber"
+                      size="sm"
+                      label="Draft re-engagement"
+                      generatingLabel="Drafting..."
+                      successLabel="Drafted"
+                      status={draftingLeadId === coolLead.id ? 'generating' : 'idle'}
+                      onClick={() => handleTriggerDraft(coolLead)}
                     />
                   </div>
                 ))}
@@ -485,13 +491,13 @@ export default function BrokerDeskPage() {
 
             <div className="flex items-center justify-end gap-3 pt-2">
               <Button variant="ghost" onClick={() => setReengageLead(null)}>Cancel</Button>
-              <GenerateButton
-                hue={210}
-                text="Draft message"
-                generatingText="Sending..."
-                isGenerating={reengageSending}
+              <Button
+                variant="primary"
+                loading={reengageSending}
                 onClick={handleSendReengage}
-              />
+              >
+                Send message
+              </Button>
             </div>
           </div>
         )}

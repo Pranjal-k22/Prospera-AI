@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     const response = NextResponse.json({ success: true, role: user.role }, { status: 201 });
     response.cookies.set('token', token, { httpOnly: true, path: '/', maxAge: 86400 });
     return response;
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "An error occurred" }, { status: 500 });
   }
 }

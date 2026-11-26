@@ -20,8 +20,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const prepBrief = await generateCallBrief(lead.analysis);
 
     return NextResponse.json(prepBrief, { status: 200 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating prep brief:', error);
-    return NextResponse.json({ error: error.message || 'Prep brief generation failed' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Prep brief generation failed' }, { status: 500 });
   }
 }

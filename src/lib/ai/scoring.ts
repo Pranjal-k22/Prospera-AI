@@ -15,7 +15,7 @@ export interface Scores {
 }
 
 export function calculatePriority(s: Scores, daysSinceContact = 0) {
-  const raw = Object.entries(W).reduce((a, [k, w]) => a + (s as any)[k] * w, 0) * 10; // 0-100
+  const raw = Object.entries(W).reduce((a, [k, w]) => a + (s[k as keyof Scores] ?? 0) * w, 0) * 10; // 0-100
   const decay = Math.min(15, Math.max(0, daysSinceContact - 1) * 3);                  // staleness penalty
   const score = Math.round(Math.max(0, raw - decay));
   const tier = score >= 70 ? "hot" : score >= 45 ? "warm" : "cold";

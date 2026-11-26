@@ -17,7 +17,7 @@ export const inventory = [
   },
   {
     id: "p2",
-    name: "Lodha Altamount",
+    name: "Solaria Altamount",
     location: "Worli",
     bhk: "3 BHK",
     price: "₹ 2.8 Cr",
@@ -33,7 +33,7 @@ export const inventory = [
   },
   {
     id: "p3",
-    name: "Rustomjee Seasons",
+    name: "Astraea Seasons",
     location: "Bandra East",
     bhk: "2 BHK",
     price: "₹ 2.1 Cr",
@@ -65,7 +65,7 @@ export const inventory = [
   },
   {
     id: "p5",
-    name: "Godrej Trees",
+    name: "Verdant Trees",
     location: "Vikhroli",
     bhk: "4 BHK",
     price: "₹ 5.5 Cr",

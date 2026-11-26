@@ -35,9 +35,9 @@ export async function POST(req: Request) {
     await newLead.save();
 
     return NextResponse.json(newLead, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating lead:', error);
-    return NextResponse.json({ error: error.message || 'Failed to create lead' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to create lead' }, { status: 500 });
   }
 }
 
@@ -49,8 +49,8 @@ export async function GET() {
     const leads = await Lead.find().sort({ 'priority.score': -1, createdAt: -1 }).lean();
     
     return NextResponse.json(leads, { status: 200 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching leads:', error);
-    return NextResponse.json({ error: error.message || 'Failed to fetch leads' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to fetch leads' }, { status: 500 });
   }
 }

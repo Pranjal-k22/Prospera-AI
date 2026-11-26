@@ -10,8 +10,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const property = await Property.findByIdAndUpdate(resolvedParams.id, body, { new: true });
     if (!property) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json({ property });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "An error occurred" }, { status: 500 });
   }
 }
 
@@ -22,7 +22,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     const property = await Property.findByIdAndDelete(resolvedParams.id);
     if (!property) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "An error occurred" }, { status: 500 });
   }
 }

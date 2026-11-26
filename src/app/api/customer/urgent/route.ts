@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import mongoose from 'mongoose';
 import connectMongo from '@/lib/mongoose';
 import Lead from '@/models/Lead';
 
@@ -42,8 +41,8 @@ export async function POST(req: NextRequest) {
     await lead.save();
 
     return NextResponse.json({ success: true, lead });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error handling urgent request:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : "An error occurred" }, { status: 500 });
   }
 }

@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Briefcase, Compass, LayoutDashboard, Search, Sparkles, Building2 } from 'lucide-react';
+import { Briefcase, Compass, Search, Sparkles, Building2 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { defaultSpring } from '@/lib/motion';
 

@@ -55,8 +55,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     await lead.save();
 
     return NextResponse.json({ response: fullResponse }, { status: 200 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in chat:', error);
-    return NextResponse.json({ error: error.message || 'Chat failed' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Chat failed' }, { status: 500 });
   }
 }

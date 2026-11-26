@@ -17,6 +17,9 @@ export const Sparkline: React.FC<SparklineProps> = ({
   color = '#0A84FF',
   className = '',
 }) => {
+  const reactId = React.useId();
+  const gradientId = `sparkline-grad-${reactId.replace(/:/g, '')}`;
+
   if (!data || data.length < 2) return null;
 
   const min = Math.min(...data);
@@ -42,8 +45,6 @@ export const Sparkline: React.FC<SparklineProps> = ({
   }, '');
 
   const areaD = `${pathD} L ${points[points.length - 1].x} ${height} L ${points[0].x} ${height} Z`;
-
-  const gradientId = `sparkline-grad-${Math.random().toString(36).substring(2, 7)}`;
 
   return (
     <div className={`inline-flex items-center overflow-hidden ${className}`}>

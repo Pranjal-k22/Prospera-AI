@@ -9,9 +9,43 @@ import { AdminLoadingScreen } from '@/components/AdminLoadingScreen';
 const getInitials = (name: string) => name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 const priorityStyle = (tone: string) => tone === 'hot' ? 'border-[#e8a33b] text-[#f5bf68]' : tone === 'warm' ? 'border-[#89a7d4] text-[#b9cdf0]' : 'border-white/20 text-[#99a1ad]';
 
+interface LeadItem {
+  _id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+  budget?: string;
+  bhk?: string;
+  message?: string;
+  priority?: {
+    tier?: string;
+    score?: number;
+    atRisk?: boolean;
+    reason?: string;
+  };
+  analysis?: {
+    summary?: string;
+    intent?: string;
+    scores?: {
+      match?: number;
+      intent?: number;
+      timeline?: number;
+    };
+  };
+  aiClassification?: {
+    urgencyTone?: 'hot' | 'warm' | 'cool';
+    readinessScore?: number;
+    recommendedInventoryTier?: string;
+  };
+  status?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export default function Dashboard() {
   const router = useRouter();
-  const [leads, setLeads] = useState<any[]>([]);
+  const [leads, setLeads] = useState<LeadItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showLoader, setShowLoader] = useState(false);
   
@@ -19,9 +53,11 @@ export default function Dashboard() {
   const [filter, setFilter] = useState<'All' | 'Hot' | 'At risk'>('All');
 
   useEffect(() => {
-    if (!sessionStorage.getItem('hasSeenAdminLoader')) {
-      setShowLoader(true);
-    }
+    const timer = setTimeout(() => {
+      if (!sessionStorage.getItem('hasSeenAdminLoader')) {
+        setShowLoader(true);
+      }
+    }, 0);
 
     fetch('/api/leads')
       .then(res => res.json())
@@ -33,6 +69,8 @@ export default function Dashboard() {
         console.error(err);
         setLoading(false);
       });
+
+    return () => clearTimeout(timer);
   }, []);
 
   const pipelineLeads = useMemo(() => leads.filter(l => l.status !== 'closed' && l.status !== 'approved'), [leads]);
@@ -40,12 +78,12 @@ export default function Dashboard() {
 
   const filtered = useMemo(() => pipelineLeads.filter(lead => {
     if (lead.status === 'withdrawn' && filter !== 'All') return false;
-    return (filter === 'All' || (filter === 'Hot' && lead.priority.tier === 'hot') || (filter === 'At risk' && lead.priority.atRisk)) 
+    return (filter === 'All' || (filter === 'Hot' && lead.priority?.tier === 'hot') || (filter === 'At risk' && lead.priority?.atRisk)) 
       && lead.name.toLowerCase().includes(query.toLowerCase());
   }), [filter, query, pipelineLeads]);
 
-  const hotCount = pipelineLeads.filter(l => l.status !== 'withdrawn' && l.priority.tier === 'hot').length;
-  const riskCount = pipelineLeads.filter(l => l.status !== 'withdrawn' && l.priority.atRisk).length;
+  const hotCount = pipelineLeads.filter(l => l.status !== 'withdrawn' && l.priority?.tier === 'hot').length;
+  const riskCount = pipelineLeads.filter(l => l.status !== 'withdrawn' && l.priority?.atRisk).length;
   const approvedCount = leads.filter(l => l.status === 'approved').length;
 
   const handleLoaderComplete = () => {
@@ -147,7 +185,7 @@ export default function Dashboard() {
               className="lead-row group grid w-full grid-cols-[1.35fr_.75fr_1.8fr_.85fr_.2fr] items-center gap-4 px-6 py-4 text-left cursor-pointer"
             >
               <div className="flex items-center gap-3">
-                <div className={`avatar ${lead.priority.tier}`}>
+                <div className={`avatar ${lead.priority?.tier || 'cool'}`}>
                   {getInitials(lead.name)}
                 </div>
                 <div>
@@ -168,10 +206,10 @@ export default function Dashboard() {
               </div>
 
               <div>
-                <span className={`priority ${priorityStyle(lead.priority.tier)}`}>
-                  {lead.priority.tier.toUpperCase()} <b>{lead.priority.score}</b>
+                <span className={`priority ${priorityStyle(lead.priority?.tier || 'cool')}`}>
+                  {(lead.priority?.tier || 'cool').toUpperCase()} <b>{lead.priority?.score ?? 0}</b>
                 </span>
-                {lead.priority.atRisk && (
+                {lead.priority?.atRisk && (
                   <span className="mt-1.5 flex w-fit items-center gap-1.5 text-xs text-[#ff6b6b]">
                     <span className="h-1.5 w-1.5 rounded-full bg-[#ff6b6b] animate-pulse"/> At risk
                   </span>
@@ -188,7 +226,7 @@ export default function Dashboard() {
               </div>
 
               <span className="text-xs text-[#7c8693] font-medium">
-                {formatDistanceToNow(new Date(lead.updatedAt), { addSuffix: true })}
+                {formatDistanceToNow(new Date(lead.updatedAt || lead.createdAt), { addSuffix: true })}
               </span>
 
               <span className="justify-self-end text-[#69717e] transition group-hover:translate-x-1 group-hover:text-[#f3bd65]">

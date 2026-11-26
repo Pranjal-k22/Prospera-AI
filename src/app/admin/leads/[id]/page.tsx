@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState, use, useCallback } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/components/Icon';
 import { useRouter } from 'next/navigation';
@@ -32,12 +32,76 @@ const Concern = ({ level, text, resolved }: { level: string; text: string; resol
   );
 };
 
+interface ObjectionRecord {
+  severity: 'low' | 'medium' | 'high';
+  concern: string;
+  resolved?: boolean;
+}
+
+interface DebriefRecord {
+  notes: string;
+  timestamp: string;
+  what_changed?: string[];
+}
+
+interface AdminLeadRecord {
+  _id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+  budget?: string;
+  bhk?: string;
+  timeline?: string;
+  requirement?: string;
+  status?: string;
+  message?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  priority?: {
+    tier?: string;
+    score?: number;
+    atRisk?: boolean;
+    reason?: string;
+  };
+  analysis?: {
+    summary?: string;
+    intent?: string;
+    confidence?: string;
+    score_rationale?: string;
+    next_action?: string;
+    key_requirements?: string[];
+    objections?: ObjectionRecord[];
+    scores?: {
+      intent_strength?: number;
+      timeline_urgency?: number;
+      budget_fit?: number;
+      information_completeness?: number;
+      engagement_quality?: number;
+    };
+  };
+  aiMatchRecommendations?: Array<{
+    property_id?: string;
+    name?: string;
+    location?: string;
+    bhk?: string;
+    price?: string;
+    match_score?: number;
+    sales_pitch?: string;
+    pros?: string[];
+    cons?: string[];
+  }>;
+  chatHistory?: Array<{ role: string; content: string }>;
+  debriefHistory?: DebriefRecord[];
+  [key: string]: unknown;
+}
+
 export default function LeadDetail({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const { id } = resolvedParams;
   const router = useRouter();
 
-  const [lead, setLead] = useState<any>(null);
+  const [lead, setLead] = useState<AdminLeadRecord | null>(null);
   const [loading, setLoading] = useState(true);
   
   // Tabs
@@ -60,7 +124,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
-  const fetchLead = async () => {
+  const fetchLead = useCallback(async () => {
     try {
       const res = await fetch(`/api/leads/${id}`);
       if (res.ok) {
@@ -68,15 +132,34 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
         setLead(data);
         setMessages(data.chatHistory || []);
       }
-    } catch (e) {
-      console.error(e);
+    } catch {
+      // ignore
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
-    fetchLead();
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await fetch(`/api/leads/${id}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (mounted) {
+            setLead(data);
+            setMessages(data.chatHistory || []);
+          }
+        }
+      } catch {
+        // ignore
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
   }, [id]);
 
   const handleDebriefSubmit = async () => {
@@ -194,7 +277,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
     try {
       const g = JSON.parse(displayMessage.replace('[GLOBAL_PROPERTY]', ''));
       displayMessage = `Customer applied for property: ${g.property_name || g.name || 'Unknown Property'} from verified inventory.`;
-    } catch(e) {}
+    } catch {}
   }
 
   return (
@@ -220,9 +303,11 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
                   Deal Won / Approved
                 </span>
               )}
-              <span className={`priority ${priorityStyle(lead.priority.tier)}`}>
-                {lead.priority.tier.toUpperCase()} <b>{lead.priority.score}</b>
-              </span>
+              {lead.priority?.tier && (
+                <span className={`priority ${priorityStyle(lead.priority.tier)}`}>
+                  {lead.priority.tier.toUpperCase()} <b>{lead.priority.score ?? 0}</b>
+                </span>
+              )}
             </div>
             <p className="mt-1 text-sm text-[#8c94a0]">
               {lead.location} <span className="mx-1 text-white/20">•</span> {lead.budget} <span className="mx-1 text-white/20">•</span> {lead.requirement}
@@ -298,7 +383,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
               <div className="panel p-6 bg-[#11151c]/60 border border-white/10 rounded-xl backdrop-blur-md space-y-5">
                 <div className="flex items-center justify-between pb-3 border-b border-white/5">
                   <h2 className="text-base font-bold text-white">Intelligence Briefing</h2>
-                  <span className="text-xs text-[#69717e]">Updated {new Date(lead.updatedAt).toLocaleTimeString()}</span>
+                  <span className="text-xs text-[#69717e]">Updated {lead.updatedAt || lead.createdAt ? new Date((lead.updatedAt || lead.createdAt) as string).toLocaleTimeString() : 'Recently'}</span>
                 </div>
                 
                 <div>
@@ -323,7 +408,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
                   <div className="pt-3 border-t border-white/5">
                     <label className="text-xs uppercase tracking-wider text-[#8c94a0] font-semibold block mb-2.5">Identified Objections</label>
                     <div className="space-y-2">
-                      {lead.analysis.objections.map((obj: any, i: number) => (
+                      {lead.analysis.objections.map((obj, i) => (
                         <Concern key={i} level={obj.severity} text={obj.concern} resolved={obj.resolved} />
                       ))}
                     </div>
@@ -333,7 +418,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
                 <div className="pt-3 border-t border-white/5">
                   <label className="text-xs uppercase tracking-wider text-[#8c94a0] font-semibold block mb-1">Customer Raw Inbound</label>
                   <p className="text-xs leading-5 text-[#a0a8b5] bg-[#0c0f15] p-3 rounded-lg border border-white/10 italic">
-                    "{displayMessage}"
+                    &quot;{displayMessage}&quot;
                   </p>
                 </div>
               </div>
@@ -367,7 +452,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
                   <div className="pt-4 border-t border-white/5">
                     <label className="text-xs uppercase tracking-wider text-[#8c94a0] font-semibold block mb-3">Audit Timeline</label>
                     <div className="space-y-3">
-                      {lead.debriefHistory.slice().reverse().map((dh: any, i: number) => (
+                      {lead.debriefHistory.slice().reverse().map((dh, i) => (
                         <div className="timeline pl-4 border-l-2 border-[#e8a33b]/30 relative pb-2" key={i}>
                           <p className="text-sm text-white font-medium">{dh.notes}</p>
                           <div className="text-xs text-[#69717e] mt-0.5">

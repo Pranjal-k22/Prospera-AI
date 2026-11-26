@@ -39,8 +39,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     await lead.save();
 
     return NextResponse.json({ success: true, lead });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error closing lead:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : "An error occurred" }, { status: 500 });
   }
 }

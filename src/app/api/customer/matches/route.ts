@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     const token = cookieStore.get('token')?.value;
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     
-    const user = await verifyAuth(token) as any;
+    const user = (await verifyAuth(token)) as { name?: string } | null;
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { query } = await req.json();
@@ -92,7 +92,7 @@ Output JSON strictly matching this schema:
 
     // Attach curated luxury images
     if (matchData.matches && Array.isArray(matchData.matches)) {
-      matchData.matches = matchData.matches.map((m: any, idx: number) => ({
+      matchData.matches = matchData.matches.map((m: Record<string, unknown>, idx: number) => ({
         ...m,
         images: globalImageSets[idx % globalImageSets.length]
       }));
@@ -138,8 +138,8 @@ Output JSON strictly matching this schema:
     });
 
     return NextResponse.json(matchData, { status: 200 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating matches:', error);
-    return NextResponse.json({ error: error.message || 'Matching failed' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Matching failed' }, { status: 500 });
   }
 }

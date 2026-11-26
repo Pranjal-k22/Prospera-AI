@@ -7,8 +7,8 @@ export async function GET() {
     await connectToDatabase();
     const properties = await Property.find({}).sort({ createdAt: -1 });
     return NextResponse.json({ properties });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "An error occurred" }, { status: 500 });
   }
 }
 
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const property = await Property.create(body);
     return NextResponse.json({ property }, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "An error occurred" }, { status: 500 });
   }
 }

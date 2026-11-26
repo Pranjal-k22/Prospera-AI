@@ -24,7 +24,7 @@ export async function GET() {
     }
     
     return NextResponse.json({ success: true, seededCount: inventory.length });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "An error occurred" }, { status: 500 });
   }
 }

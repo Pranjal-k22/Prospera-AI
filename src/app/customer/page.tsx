@@ -1,7 +1,27 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Icon } from '@/components/Icon';
+import { BRAND_NAME } from '@/lib/brand';
+
+interface CustomerProperty {
+  id?: string;
+  property_id?: string;
+  name?: string;
+  property_name?: string;
+  [key: string]: unknown;
+}
+
+interface LeadPropertyDetails {
+  location?: string;
+  bhk?: string;
+  price?: string;
+  description?: string;
+  images?: string[];
+  features?: string[];
+  [key: string]: unknown;
+}
 
 function ImageGallery({ images, name, compact = false }: { images: string[], name: string, compact?: boolean }) {
   const [activeIdx, setActiveIdx] = useState(0);
@@ -9,19 +29,19 @@ function ImageGallery({ images, name, compact = false }: { images: string[], nam
   
   return (
     <div className={`flex flex-col gap-2 ${compact ? 'w-full md:w-64 shrink-0' : 'w-full mb-5'}`}>
-      <div className={`w-full rounded-xl overflow-hidden border border-white/10 bg-[#11151c]/80/5 ${compact ? 'h-44' : 'h-48 md:h-60'}`}>
-        <img src={images[activeIdx]} alt={name} className="w-full h-full object-cover transition-opacity duration-300" />
+      <div className={`relative w-full rounded-xl overflow-hidden border border-white/10 bg-[#11151c]/80/5 ${compact ? 'h-44' : 'h-48 md:h-60'}`}>
+        <Image src={images[activeIdx]} alt={name} fill unoptimized className="object-cover transition-opacity duration-300" />
       </div>
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
         {images.map((img, idx) => (
           <button 
             key={idx} 
             onClick={() => setActiveIdx(idx)}
-            className={`h-11 flex-1 rounded-lg overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${
+            className={`relative h-11 flex-1 rounded-lg overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${
               activeIdx === idx ? 'border-[#e8a33b] shadow-xs' : 'border-transparent opacity-60 hover:opacity-100'
             }`}
           >
-            <img src={img} alt={`${name} ${idx}`} className="w-full h-full object-cover" />
+            <Image src={img} alt={`${name} ${idx}`} fill unoptimized className="object-cover" />
           </button>
         ))}
       </div>
@@ -45,7 +65,55 @@ export default function CustomerDashboard() {
   });
   const [isListing, setIsListing] = useState(false);
   
-  const [applications, setApplications] = useState<any[]>([]);
+  interface CustomerPropertyItem {
+    _id?: string;
+    id?: string;
+    property_id?: string;
+    name?: string;
+    property_name?: string;
+    location?: string;
+    bhk?: string;
+    price?: string;
+    features?: string[];
+    images?: string[];
+    description?: string;
+    sales_pitch?: string;
+    [key: string]: unknown;
+  }
+
+  interface CustomerAppItem {
+    _id: string;
+    status: string;
+    requirement: string;
+    message?: string;
+    closeReason?: string;
+    createdAt?: string;
+    priority?: {
+      tier?: string;
+      score?: number;
+      atRisk?: boolean;
+    };
+  }
+
+  interface CustomerMatchResult {
+    location?: string;
+    summary?: string;
+    matches: Array<{
+      property_id?: string;
+      property_name?: string;
+      location?: string;
+      bhk?: string;
+      price?: string;
+      sales_pitch?: string;
+      match_score?: number;
+      pros?: string[];
+      cons?: string[];
+      images?: string[];
+      [key: string]: unknown;
+    }>;
+  }
+
+  const [applications, setApplications] = useState<CustomerAppItem[]>([]);
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
 
   const [matchForm, setMatchForm] = useState({
@@ -55,40 +123,30 @@ export default function CustomerDashboard() {
     additionalDetails: ''
   });
   const [isMatching, setIsMatching] = useState(false);
-  const [matches, setMatches] = useState<any>(null);
+  const [matches, setMatches] = useState<CustomerMatchResult | null>(null);
 
   const [chatInput, setChatInput] = useState('');
   const [chatMessages, setChatMessages] = useState<{role: string, content: string}[]>([]);
   const [isTyping, setIsTyping] = useState(false);
 
-  const [inventory, setInventory] = useState<any[]>([]);
-  const prevApps = useRef<any[]>([]);
+  const [inventory, setInventory] = useState<CustomerPropertyItem[]>([]);
+  const prevApps = useRef<CustomerAppItem[]>([]);
 
-  useEffect(() => {
-    fetchApplications();
-    fetchInventory();
-    const interval = setInterval(fetchApplications, 3000);
-    return () => clearInterval(interval);
+  const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
   }, []);
 
-  const fetchInventory = async () => {
-    const res = await fetch('/api/inventory');
-    if (res.ok) {
-      const data = await res.json();
-      setInventory(data.properties || []);
-    }
-  };
-
-  const fetchApplications = async () => {
+  const fetchApplications = useCallback(async () => {
     const res = await fetch('/api/customer/applications');
     if (res.ok) {
       const data = await res.json();
-      const newApps = data.leads;
+      const newApps: CustomerAppItem[] = data.leads;
       
-      const oldClosed = new Set(prevApps.current.filter((a: any) => a.status === 'closed').map((a: any) => a._id));
-      const oldApproved = new Set(prevApps.current.filter((a: any) => a.status === 'approved').map((a: any) => a._id));
+      const oldClosed = new Set(prevApps.current.filter((a) => a.status === 'closed').map((a) => a._id));
+      const oldApproved = new Set(prevApps.current.filter((a) => a.status === 'approved').map((a) => a._id));
       
-      newApps.forEach((app: any) => {
+      newApps.forEach((app) => {
         if (app.status === 'closed' && !oldClosed.has(app._id) && prevApps.current.length > 0) {
            showToast(`Broker updated your request: ${app.closeReason || 'Closed'}`, 'error');
            setActiveTab('applied');
@@ -101,12 +159,30 @@ export default function CustomerDashboard() {
       prevApps.current = newApps;
       setApplications(newApps);
     }
-  };
+  }, [showToast]);
 
-  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 4000);
-  };
+  const fetchInventory = useCallback(async () => {
+    const res = await fetch('/api/inventory');
+    if (res.ok) {
+      const data = await res.json();
+      setInventory(data.properties || []);
+    }
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      if (mounted) {
+        await fetchApplications();
+        await fetchInventory();
+      }
+    })();
+    const interval = setInterval(fetchApplications, 3000);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, [fetchApplications, fetchInventory]);
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -114,10 +190,10 @@ export default function CustomerDashboard() {
     router.refresh();
   };
 
-  const handleApply = async (property: any) => {
+  const handleApply = async (property: CustomerProperty) => {
     const pId = property.id || property.property_id;
     const pName = property.name || property.property_name;
-    setApplying(pId);
+    setApplying(typeof pId === 'string' ? pId : null);
     
     const res = await fetch('/api/customer/apply', {
       method: 'POST',
@@ -235,7 +311,7 @@ Details: ${matchForm.additionalDetails}
     .filter(lead => lead.requirement.startsWith('Buying: '))
     .map(lead => lead.requirement.replace('Buying: ', ''));
 
-  const availableInventory = inventory.filter(prop => !appliedPropertyNames.includes(prop.name));
+  const availableInventory = inventory.filter(prop => !appliedPropertyNames.includes(prop.name || ''));
   const appliedBuyingLeads = applications.filter(lead => lead.requirement.startsWith('Buying: ') && lead.status !== 'withdrawn');
 
   return (
@@ -345,7 +421,7 @@ Details: ${matchForm.additionalDetails}
                 <div key={property._id || property.id || idx} className="panel p-6 bg-[#11151c]/80 border border-white/10 rounded-xl shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
                   <div>
                     {property.images && (
-                      <ImageGallery images={property.images} name={property.name} />
+                      <ImageGallery images={property.images} name={property.name || 'Property'} />
                     )}
                     <div className="flex justify-between items-start mb-2">
                       <div>
@@ -419,8 +495,10 @@ Details: ${matchForm.additionalDetails}
                         description: g.sales_pitch || g.description,
                         images: g.images,
                         features: []
-                      } as any;
-                    } catch(e) {}
+                      } as LeadPropertyDetails;
+                    } catch {
+                      // ignore parse error
+                    }
                   }
                   
                   return (
@@ -533,7 +611,7 @@ Details: ${matchForm.additionalDetails}
                   <input 
                     type="text" 
                     className="field w-full border-white/15 text-white shadow-sm" 
-                    placeholder="e.g. Lodha Altamount Penthouse"
+                    placeholder="e.g. Solaria Altamount Penthouse"
                     value={listForm.propertyName}
                     onChange={e => setListForm({...listForm, propertyName: e.target.value})}
                     required
@@ -669,21 +747,24 @@ Details: ${matchForm.additionalDetails}
                 <div className="flex justify-between items-end mb-4">
                   <h3 className="text-lg font-bold text-white">Recommended Luxury Matches</h3>
                   <div className="text-xs text-[#8c94a0]">
-                    Analyzed by <strong className="text-[#f3bd65]">Prospera AI</strong>
+                    Analyzed by <strong className="text-[#f3bd65]">{BRAND_NAME} AI</strong>
                   </div>
                 </div>
 
                 <div className="grid gap-6 2xl:grid-cols-2">
-                  {matches.matches.map((m: any) => {
+                  {matches.matches.map((m, idx) => {
                     const localProperty = inventory.find(p => p.id === m.property_id);
                     const images = m.images || localProperty?.images;
-                    const name = m.property_name || localProperty?.name;
-                    const location = m.location || localProperty?.location;
-                    const bhk = m.bhk || localProperty?.bhk;
-                    const price = m.price || localProperty?.price;
+                    const name = (m.property_name || localProperty?.name || 'Property') as string;
+                    const location = (m.location || localProperty?.location || '') as string;
+                    const bhk = (m.bhk || localProperty?.bhk || '') as string;
+                    const price = (m.price || localProperty?.price || '') as string;
+                    const salesPitch = typeof m.sales_pitch === 'string' ? m.sales_pitch : '';
+                    const prosList = Array.isArray(m.pros) ? m.pros : [];
+                    const consList = Array.isArray(m.cons) ? m.cons : [];
 
                     return (
-                      <div key={m.property_id} className="panel p-6 bg-[#11151c]/80 border border-white/10 rounded-xl shadow-sm hover:shadow-md transition-shadow flex flex-col xl:flex-row gap-6 items-start">
+                      <div key={m.property_id || idx} className="panel p-6 bg-[#11151c]/80 border border-white/10 rounded-xl shadow-sm hover:shadow-md transition-shadow flex flex-col xl:flex-row gap-6 items-start">
                         {images && (
                           <ImageGallery images={images} name={name} compact={true} />
                         )}
@@ -696,19 +777,23 @@ Details: ${matchForm.additionalDetails}
                               </span>
                             </div>
                             <p className="text-xs text-[#8c94a0] font-medium mb-3">{location} • {bhk} • <strong className="text-[#f3bd65]">{price}</strong></p>
-                            <p className="text-[#dce0e5] text-xs italic mb-4 bg-[#11151c]/80/5 p-3 rounded-lg border border-white/10 leading-relaxed">
-                              "{m.sales_pitch}"
-                            </p>
+                            {salesPitch && (
+                              <p className="text-[#dce0e5] text-xs italic mb-4 bg-[#11151c]/80/5 p-3 rounded-lg border border-white/10 leading-relaxed">
+                                &quot;{salesPitch}&quot;
+                              </p>
+                            )}
                             
                             <div className="space-y-1.5 text-xs">
-                              <div className="flex gap-2">
-                                <Icon name="check" size={14} className="text-emerald-600 shrink-0 mt-0.5" />
-                                <span className="text-[#dce0e5]"><strong>Pros:</strong> {m.pros?.join(', ')}</span>
-                              </div>
-                              {m.cons && m.cons.length > 0 && (
+                              {prosList.length > 0 && (
+                                <div className="flex gap-2">
+                                  <Icon name="check" size={14} className="text-emerald-600 shrink-0 mt-0.5" />
+                                  <span className="text-[#dce0e5]"><strong>Pros:</strong> {prosList.join(', ')}</span>
+                                </div>
+                              )}
+                              {consList.length > 0 && (
                                 <div className="flex gap-2">
                                   <Icon name="close" size={14} className="text-red-500 shrink-0 mt-0.5" />
-                                  <span className="text-[#dce0e5]"><strong>Cons:</strong> {m.cons.join(', ')}</span>
+                                  <span className="text-[#dce0e5]"><strong>Cons:</strong> {consList.join(', ')}</span>
                                 </div>
                               )}
                             </div>
@@ -828,7 +913,7 @@ Details: ${matchForm.additionalDetails}
           <div className="panel max-w-sm w-full p-6 bg-[#11151c]/80 border border-white/10 rounded-2xl shadow-xl">
             <h3 className="text-lg font-bold text-white mb-1">Request Urgent Attention</h3>
             <p className="text-[#8c94a0] text-xs mb-5 leading-relaxed">
-              This will escalate your application to HOT priority in the broker's deal room, triggering an urgent callback alert.
+              This will escalate your application to HOT priority in the broker&apos;s deal room, triggering an urgent callback alert.
             </p>
             <div className="flex justify-end gap-3">
               <button onClick={() => setShowUrgentModal(null)} className="button-secondary text-xs px-4 py-2">

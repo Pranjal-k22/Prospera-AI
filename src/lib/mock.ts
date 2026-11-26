@@ -326,7 +326,7 @@ export const MOCK_LEADS: Lead[] = [
     callPrep: {
       buyerPersona: 'Discreet luxury jeweler with ultra-specific security and gallery-style display lighting requirements.',
       topMotivators: [
-        'Prestige address on Road No. 36 Jubilee Hills',
+        'Elite address on Road No. 36 Jubilee Hills',
         'Natural rocky ridge views and private cantilevered infinity pool',
       ],
       suggestedOpeners: [
@@ -498,7 +498,7 @@ export const MOCK_LEADS: Lead[] = [
     ],
     callPrep: {
       buyerPersona: 'Corporate executive balancing liquidity and corporate bonus cycles.',
-      topMotivators: ['Direct golf course fairway views', 'DLF Phase 5 ecosystem'],
+      topMotivators: ['Direct golf course fairway views', 'Golf Course Horizon enclave'],
       suggestedOpeners: ['“Naveen, developer introduced a 20:80 subvention structure that requires only 20% down today.”'],
       objectionResponses: [],
     },
@@ -827,10 +827,10 @@ export const MOCK_PROPERTIES: Property[] = [
   {
     id: 'prop-9',
     title: 'The Oakhill Sanctuary, Golf Course Road',
-    tagline: 'Fairway-Facing Panorama in DLF Phase 5',
+    tagline: 'Fairway-Facing Panorama on Golf Course Horizon',
     price: '₹16.5 Cr',
     priceNumericCr: 16.5,
-    location: 'DLF Phase 5, Gurugram, Delhi NCR',
+    location: 'Golf Course Horizon, Sector 42, Gurugram, Delhi NCR',
     city: 'Delhi NCR',
     bhk: 4,
     carpetAreaSqFt: 5400,

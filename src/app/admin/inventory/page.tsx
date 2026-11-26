@@ -1,51 +1,81 @@
 'use client';
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { Icon } from '@/components/Icon';
 
+interface InventoryPropertyItem {
+  _id?: string;
+  name: string;
+  location: string;
+  price: string;
+  bhk: string;
+  description?: string;
+  images?: string[];
+  features?: string[];
+}
+
 export default function InventoryManagement() {
-  const [properties, setProperties] = useState<any[]>([]);
+  const [properties, setProperties] = useState<InventoryPropertyItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', location: '', price: '', bhk: '', description: '', images: '' });
 
-  useEffect(() => {
-    fetchProperties();
-  }, []);
-
-  const fetchProperties = async () => {
-    setLoading(true);
-    const res = await fetch('/api/inventory');
-    const data = await res.json();
-    if (data.properties) setProperties(data.properties);
-    setLoading(false);
+  const loadProperties = async () => {
+    try {
+      const res = await fetch('/api/inventory');
+      const data = await res.json();
+      if (data.properties) setProperties(data.properties);
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await fetch('/api/inventory');
+        const data = await res.json();
+        if (mounted && data.properties) setProperties(data.properties);
+      } catch {
+        // ignore
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const handleSync = async () => {
     setIsSyncing(true);
     try {
       const res = await fetch('/api/cron/sync', { method: 'POST' });
       if (res.ok) {
-        await fetchProperties();
+        await loadProperties();
       } else {
         alert("Failed to sync MLS data.");
       }
-    } catch (e) {
+    } catch {
       alert("Error syncing data.");
     }
     setIsSyncing(false);
   };
 
-  const handleEdit = (prop: any) => {
-    setEditingId(prop._id);
+  const handleEdit = (prop: InventoryPropertyItem) => {
+    setEditingId(prop._id || null);
     setForm({
       name: prop.name,
       location: prop.location,
       price: prop.price,
       bhk: prop.bhk,
-      description: prop.description,
-      images: prop.images.join(', ')
+      description: prop.description || '',
+      images: (prop.images || []).join(', ')
     });
   };
 
@@ -53,7 +83,7 @@ export default function InventoryManagement() {
     if (!deleteConfirmId) return;
     await fetch(`/api/inventory/${deleteConfirmId}`, { method: 'DELETE' });
     setDeleteConfirmId(null);
-    fetchProperties();
+    loadProperties();
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -77,7 +107,7 @@ export default function InventoryManagement() {
       });
     }
     setEditingId(null);
-    fetchProperties();
+    loadProperties();
   };
 
   if (loading) {
@@ -158,14 +188,14 @@ export default function InventoryManagement() {
             </div>
           ) : (
             <div key={p._id} className="panel p-6 bg-[#11151c]/80 border border-white/10 rounded-xl shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row gap-6 items-start">
-              <div className="w-48 h-32 rounded-lg overflow-hidden shrink-0 border border-white/10 bg-[#11151c]/80/5">
-                <img 
-                  src={p.images?.[0] || 'https://via.placeholder.com/300'} 
-                  className="w-full h-full object-cover" 
+              <div className="relative w-48 h-32 rounded-lg overflow-hidden shrink-0 border border-white/10 bg-[#11151c]/80/5">
+                <Image 
+                  src={p.images?.[0] || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80'} 
+                  className="object-cover" 
                   alt={p.name}
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80';
-                  }}
+                  fill
+                  sizes="192px"
+                  unoptimized
                 />
               </div>
               <div className="flex-1">
@@ -175,7 +205,7 @@ export default function InventoryManagement() {
               </div>
               <div className="flex md:flex-col gap-2 shrink-0">
                 <button onClick={() => handleEdit(p)} className="button-secondary text-xs px-3 py-1.5">Edit</button>
-                <button onClick={() => setDeleteConfirmId(p._id)} className="button-secondary text-xs px-3 py-1.5 text-red-600 border-red-200 hover:bg-red-50">Delete</button>
+                <button onClick={() => setDeleteConfirmId(p._id || null)} className="button-secondary text-xs px-3 py-1.5 text-red-600 border-red-200 hover:bg-red-50">Delete</button>
               </div>
             </div>
           )

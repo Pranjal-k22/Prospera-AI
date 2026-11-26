@@ -26,7 +26,7 @@ Remind them they can use the AI Matchmaker form on this page to instantly genera
       generationConfig: { maxOutputTokens: 512, temperature: 0.7 }
     });
 
-    const contents = messages.map((m: any) => ({
+    const contents = messages.map((m: { role: string; content: string }) => ({
       role: m.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: m.content }]
     }));
@@ -35,8 +35,8 @@ Remind them they can use the AI Matchmaker form on this page to instantly genera
     const reply = result.response.text() || "I am currently unavailable.";
 
     return NextResponse.json({ reply }, { status: 200 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in customer chat:', error);
-    return NextResponse.json({ error: error.message || 'Chat failed' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Chat failed' }, { status: 500 });
   }
 }

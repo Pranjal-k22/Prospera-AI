@@ -1,33 +1,24 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Compass,
   Sparkles,
   Building2,
   FileCheck2,
   PlusCircle,
-  Search,
-  Filter,
   CheckCircle2,
   AlertTriangle,
   ArrowRight,
-  Send,
   Eye,
-  Calendar,
-  ShieldCheck,
-  MapPin,
   Maximize2,
   BedDouble,
-  DollarSign,
-  TrendingUp,
   Heart,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GenerateButton } from '@/components/ui/generate-button';
 import { GlassCard } from '@/components/ui/GlassCard';
-import { GlassPanel } from '@/components/ui/GlassPanel';
 import { GlassPill } from '@/components/ui/GlassPill';
 import { ScoreRing } from '@/components/ui/ScoreRing';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
@@ -38,33 +29,41 @@ import { Timeline } from '@/components/ui/Timeline';
 import { useToast } from '@/components/ui/Toast';
 import { MOCK_PROPERTIES, MOCK_APPLICATIONS, Property, Application, aiMatchmakerSearch } from '@/lib/mock';
 import { fadeInUp, staggerContainer } from '@/lib/motion';
+import { getStorageItem, setStorageItem } from '@/lib/brand';
+
+type BuyerTab = 'explore' | 'matchmaker' | 'applications' | 'list';
 
 export default function BuyerPortalPage() {
   const { toast } = useToast();
 
-  const [activeTab, setActiveTab] = useState<'explore' | 'matchmaker' | 'applications' | 'list'>('explore');
+  const [activeTab, setActiveTab] = useState<BuyerTab>('explore');
   const [favorites, setFavorites] = useState<string[]>([]);
 
-  // Restore state from localStorage safely
+  // Restore state from localStorage safely with brand migration
   useEffect(() => {
-    try {
-      const savedTab = localStorage.getItem('prospera-buyer-tab');
-      if (savedTab && ['explore', 'matchmaker', 'applications', 'list'].includes(savedTab)) {
-        setActiveTab(savedTab as any);
+    const timer = setTimeout(() => {
+      try {
+        const savedTab = getStorageItem('buyer-tab');
+        if (savedTab && ['explore', 'matchmaker', 'applications', 'list'].includes(savedTab)) {
+          setActiveTab(savedTab as BuyerTab);
+        }
+        const savedFavs = getStorageItem('favorites');
+        if (savedFavs) {
+          setFavorites(JSON.parse(savedFavs));
+        }
+      } catch {
+        // safe fallback
       }
-      const savedFavs = localStorage.getItem('prospera-favorites');
-      if (savedFavs) {
-        setFavorites(JSON.parse(savedFavs));
-      }
-    } catch {
-      // safe fallback
-    }
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleTabChange = (t: string) => {
-    setActiveTab(t as any);
+    if (['explore', 'matchmaker', 'applications', 'list'].includes(t)) {
+      setActiveTab(t as BuyerTab);
+    }
     try {
-      localStorage.setItem('prospera-buyer-tab', t);
+      setStorageItem('buyer-tab', t);
     } catch {
       // safe fallback
     }
@@ -75,7 +74,7 @@ export default function BuyerPortalPage() {
     const updated = isFav ? favorites.filter((id) => id !== propId) : [...favorites, propId];
     setFavorites(updated);
     try {
-      localStorage.setItem('prospera-favorites', JSON.stringify(updated));
+      setStorageItem('favorites', JSON.stringify(updated));
     } catch {}
     if (!isFav) {
       toast.success('Saved to Portfolio Favorites', title);
@@ -101,6 +100,7 @@ export default function BuyerPortalPage() {
 
   // LIST PROPERTY WIZARD STATES
   const [wizardStep, setWizardStep] = useState(1);
+  const [isValuing, setIsValuing] = useState(false);
   const [listForm, setListForm] = useState({
     title: '',
     city: 'Mumbai',
@@ -109,6 +109,15 @@ export default function BuyerPortalPage() {
     carpetArea: 4200,
     features: ['Sea View', 'Private Elevator'],
   });
+
+  const handleRunValuation = () => {
+    setIsValuing(true);
+    setTimeout(() => {
+      setIsValuing(false);
+      setWizardStep(3);
+      toast.success('AI Valuation Synthesized', 'Calculated ₹28.5 Cr estimated range for 4,200 sq.ft in Worli.');
+    }, 1200);
+  };
 
   // Filtered properties for Explore Tab
   const filteredProperties = useMemo(() => {
@@ -327,10 +336,11 @@ export default function BuyerPortalPage() {
                 <div className="flex justify-between items-center mt-3">
                   <span className="text-[11px] text-[var(--text-3)] font-mono">Agentic Search • 12 Verified Micro-Markets</span>
                   <GenerateButton
-                    hue={210}
-                    text="Find matches"
-                    generatingText="Finding matches..."
-                    isGenerating={isSynthesizing}
+                    tone="amber"
+                    label="Find matches"
+                    generatingLabel="Matching..."
+                    successLabel="Matched"
+                    status={isSynthesizing ? 'generating' : 'idle'}
                     onClick={() => handleRunMatchmaker()}
                   />
                 </div>
@@ -627,10 +637,12 @@ export default function BuyerPortalPage() {
                 <div className="flex justify-between items-center pt-6">
                   <Button variant="ghost" onClick={() => setWizardStep(1)}>Back</Button>
                   <GenerateButton
-                    hue={150}
-                    text="Generate valuation"
-                    generatingText="Evaluating..."
-                    onClick={() => setWizardStep(3)}
+                    tone="emerald"
+                    label="Generate AI valuation"
+                    generatingLabel="Valuing..."
+                    successLabel="Valuation Ready"
+                    status={isValuing ? 'generating' : 'idle'}
+                    onClick={handleRunValuation}
                   />
                 </div>
               </div>

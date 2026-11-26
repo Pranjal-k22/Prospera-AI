@@ -7,7 +7,12 @@ export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
   const publicPaths = ['/login', '/signup', '/'];
-  const isPublic = publicPaths.includes(path);
+  const isPublic =
+    publicPaths.includes(path) ||
+    path.startsWith('/homes') ||
+    path.startsWith('/buyer') ||
+    path.startsWith('/dev') ||
+    path === '/broker';
   
   // Skip middleware for static files, API routes, and images
   if (
@@ -30,7 +35,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (verifiedToken) {
-    const role = (verifiedToken as any).role;
+    const role = (verifiedToken as { role?: string }).role;
     
     // Redirect logged in users away from auth pages
     if (path === '/login' || path === '/signup') {

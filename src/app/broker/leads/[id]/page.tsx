@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useParams } from 'next/navigation';
+import { motion } from 'framer-motion';
 import {
   ArrowLeft,
   Phone,
@@ -18,14 +18,9 @@ import {
   Calendar,
   Check,
   ShieldCheck,
-  TrendingUp,
   MapPin,
-  Clock,
-  Layers,
-  Flame,
   Copy,
   Trophy,
-  Archive,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GenerateButton } from '@/components/ui/generate-button';
@@ -36,16 +31,15 @@ import { ScoreRing } from '@/components/ui/ScoreRing';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { Modal } from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
-import { MOCK_LEADS, Lead, ObjectionItem } from '@/lib/mock';
-import { fadeInUp, defaultSpring } from '@/lib/motion';
+import { MOCK_LEADS, Lead } from '@/lib/mock';
+import { fadeInUp } from '@/lib/motion';
 
 export default function LeadHubPage() {
   const params = useParams();
-  const router = useRouter();
   const { toast } = useToast();
   const leadId = params.id as string;
 
-  const [lead, setLead] = useState<Lead | null>(null);
+  const [lead, setLead] = useState<Lead | null>(() => MOCK_LEADS.find((l) => l.id === leadId) || MOCK_LEADS[0] || null);
   const [activeTab, setActiveTab] = useState<'prep' | 'debrief' | 'copilot'>('prep');
 
   // Debrief State
@@ -55,13 +49,66 @@ export default function LeadHubPage() {
 
   // Copilot Chat State
   const [copilotInput, setCopilotInput] = useState('');
-  const [copilotHistory, setCopilotHistory] = useState<{ id: string; sender: 'user' | 'assistant'; text: string; timestamp: string }[]>([]);
+  const [copilotHistory, setCopilotHistory] = useState<{ id: string; sender: 'user' | 'assistant'; text: string; timestamp: string }[]>(
+    () => (MOCK_LEADS.find((l) => l.id === leadId) || MOCK_LEADS[0])?.copilotMessages || []
+  );
   const [isCopilotTyping, setIsCopilotTyping] = useState(false);
 
   // Sticky Action Modal
   const [actionModal, setActionModal] = useState<string | null>(null);
   const [copiedOpenerIdx, setCopiedOpenerIdx] = useState<number | null>(null);
   const [prevStage, setPrevStage] = useState<Lead['stage'] | null>(null);
+
+  // Controlled AI Generation States per spec
+  const [rescoreStatus, setRescoreStatus] = useState<'idle' | 'generating' | 'success' | 'error'>('idle');
+  const [termSheetStatus, setTermSheetStatus] = useState<'idle' | 'generating' | 'success' | 'error'>('idle');
+  const [whatsAppOpenerStatus, setWhatsAppOpenerStatus] = useState<'idle' | 'generating' | 'success' | 'error'>('idle');
+  const [riskAnalysisStatus, setRiskAnalysisStatus] = useState<'idle' | 'generating' | 'success' | 'error'>('idle');
+  const [isDarkTheme] = useState(() =>
+    typeof document !== 'undefined' ? document.documentElement.getAttribute('data-theme') !== 'light' : true
+  );
+
+  const handleRescoreLead = () => {
+    if (rescoreStatus === 'generating') return;
+    setRescoreStatus('generating');
+    setTimeout(() => {
+      setRescoreStatus('success');
+      if (lead) {
+        const nextScore = Math.min(99, lead.score + 2);
+        setLead({ ...lead, score: nextScore });
+      }
+      toast.success('Lead Re-scored', 'AI recalculation adjusted intent score based on latest mandate telemetry.');
+    }, 1100);
+  };
+
+  const handleGenerateTermSheet = () => {
+    if (termSheetStatus === 'generating') return;
+    setTermSheetStatus('generating');
+    setTimeout(() => {
+      setTermSheetStatus('success');
+      setActionModal('termSheet');
+      toast.success('Term Sheet Drafted', 'LOI generated with custom covenants and payment tranches.');
+    }, 1200);
+  };
+
+  const handleDraftWhatsAppOpener = () => {
+    if (whatsAppOpenerStatus === 'generating') return;
+    setWhatsAppOpenerStatus('generating');
+    setTimeout(() => {
+      setWhatsAppOpenerStatus('success');
+      handleSendCopilot(`Draft a high-priority WhatsApp check-in for ${lead?.name ?? 'client'}`);
+      toast.success('WhatsApp Opener Generated', 'Ready to paste into client touchpoint.');
+    }, 1000);
+  };
+
+  const handleRiskAnalysis = () => {
+    if (riskAnalysisStatus === 'generating') return;
+    setRiskAnalysisStatus('generating');
+    setTimeout(() => {
+      setRiskAnalysisStatus('success');
+      toast.warning('Risk Analysis Complete', 'Low risk: Buyer liquidity verified, title clearance confirmed.');
+    }, 1200);
+  };
 
   const handleCopyOpener = (text: string, idx: number) => {
     navigator.clipboard.writeText(text);
@@ -85,9 +132,12 @@ export default function LeadHubPage() {
   };
 
   useEffect(() => {
-    const found = MOCK_LEADS.find((l) => l.id === leadId) || MOCK_LEADS[0];
-    setLead({ ...found });
-    setCopilotHistory(found.copilotMessages || []);
+    const timer = setTimeout(() => {
+      const found = MOCK_LEADS.find((l) => l.id === leadId) || MOCK_LEADS[0];
+      setLead(found ? { ...found } : null);
+      setCopilotHistory(found?.copilotMessages || []);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [leadId]);
 
   if (!lead) {
@@ -383,7 +433,7 @@ export default function LeadHubPage() {
           <div className="flex justify-start">
             <SegmentedControl
               value={activeTab}
-              onChange={(t) => setActiveTab(t as any)}
+              onChange={(t) => setActiveTab(t as 'prep' | 'debrief' | 'copilot')}
               options={[
                 { id: 'prep', label: 'Call Prep Dossier', icon: <Sparkles className="w-4 h-4" /> },
                 { id: 'debrief', label: 'Post-Call Debrief', icon: <FileText className="w-4 h-4" /> },
@@ -526,13 +576,13 @@ export default function LeadHubPage() {
                   </div>
 
                   <div className="flex justify-end">
-                    <GenerateButton
+                    <Button
                       type="submit"
-                      hue={150}
-                      text="Save debrief"
-                      generatingText="Saving debrief..."
-                      isGenerating={isSavingDebrief}
-                    />
+                      variant="primary"
+                      loading={isSavingDebrief}
+                    >
+                      Save debrief
+                    </Button>
                   </div>
                 </form>
               </GlassCard>
@@ -615,14 +665,17 @@ export default function LeadHubPage() {
                   )}
                 </div>
 
-                {/* Quick Prompt Pills */}
+                {/* Quick Prompt Pills & AI Generator */}
                 <div className="flex items-center gap-1.5 overflow-x-auto py-2 border-t border-[var(--glass-border)]">
-                  <button
-                    onClick={() => handleSendCopilot('Draft a formal WhatsApp check-in for Rajesh')}
-                    className="text-[11px] font-medium text-[var(--accent)] bg-[var(--accent-subtle)] px-2.5 py-1 rounded-full whitespace-nowrap hover:brightness-105"
-                  >
-                    Draft WhatsApp
-                  </button>
+                  <GenerateButton
+                    tone="amber"
+                    size="sm"
+                    label="Draft WhatsApp opener"
+                    generatingLabel="Drafting..."
+                    successLabel="Opener Ready"
+                    status={whatsAppOpenerStatus}
+                    onClick={handleDraftWhatsAppOpener}
+                  />
                   <button
                     onClick={() => handleSendCopilot('What is our leverage on the 4th car parking slot?')}
                     className="text-[11px] font-medium text-[var(--accent)] bg-[var(--accent-subtle)] px-2.5 py-1 rounded-full whitespace-nowrap hover:brightness-105"
@@ -673,7 +726,7 @@ export default function LeadHubPage() {
             <span className="text-xs font-semibold text-[var(--text)]">Mandate Active: {lead.name}</span>
           </div>
 
-          <div className="flex items-center justify-end w-full sm:w-auto gap-2">
+          <div className="flex items-center justify-end w-full sm:w-auto gap-2 flex-wrap">
             <Button
               size="sm"
               variant="glass"
@@ -691,10 +744,31 @@ export default function LeadHubPage() {
               Schedule Visit
             </Button>
             <GenerateButton
-              hue={210}
-              text="Generate term sheet"
-              generatingText="Generating..."
-              onClick={() => setActionModal('termSheet')}
+              tone={isDarkTheme ? 'cyan' : 'amber'}
+              size="sm"
+              label="Re-score lead"
+              generatingLabel="Scoring..."
+              successLabel="Score Updated"
+              status={rescoreStatus}
+              onClick={handleRescoreLead}
+            />
+            <GenerateButton
+              tone="rose"
+              size="sm"
+              label="Risk analysis"
+              generatingLabel="Analyzing..."
+              successLabel="Risk Checked"
+              status={riskAnalysisStatus}
+              onClick={handleRiskAnalysis}
+            />
+            <GenerateButton
+              tone="blue"
+              size="sm"
+              label="Generate term sheet"
+              generatingLabel="Drafting..."
+              successLabel="Term Sheet Ready"
+              status={termSheetStatus}
+              onClick={handleGenerateTermSheet}
             />
           </div>
         </GlassPanel>

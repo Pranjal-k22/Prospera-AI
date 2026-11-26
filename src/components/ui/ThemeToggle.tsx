@@ -4,27 +4,32 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sun, Moon } from 'lucide-react';
 import { defaultSpring } from '@/lib/motion';
+import { getStorageItem, setStorageItem } from '@/lib/brand';
 
 export const ThemeToggle: React.FC<{ className?: string }> = ({ className = '' }) => {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    const saved = localStorage.getItem('prospera-theme');
-    if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      setTheme('dark');
-      document.documentElement.setAttribute('data-theme', 'dark');
-    } else {
-      setTheme('light');
-      document.documentElement.removeAttribute('data-theme');
-    }
+    const timer = setTimeout(() => {
+      setMounted(true);
+      const saved = getStorageItem('theme');
+      if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        setTheme('dark');
+        document.documentElement.setAttribute('data-theme', 'dark');
+      } else {
+        setTheme('light');
+        document.documentElement.removeAttribute('data-theme');
+      }
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, []);
 
   const toggleTheme = () => {
     const next = theme === 'light' ? 'dark' : 'light';
     setTheme(next);
-    localStorage.setItem('prospera-theme', next);
+    setStorageItem('theme', next);
     if (next === 'dark') {
       document.documentElement.setAttribute('data-theme', 'dark');
     } else {

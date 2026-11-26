@@ -1,4 +1,3 @@
-import { z } from 'zod';
 import { SchemaType } from '@google/generative-ai';
 
 // We use Zod for our own validation but map it to Gemini's Schema format

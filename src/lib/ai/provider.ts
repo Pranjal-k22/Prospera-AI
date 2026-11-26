@@ -5,14 +5,28 @@ const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || proce
 const genAI = new GoogleGenerativeAI(apiKey || 'dummy_api_key_for_build');
 const modelName = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
 
-export async function analyzeLead(leadData: any, customerMessage: string) {
+export interface LeadDataInput {
+  name?: string;
+  location?: string;
+  requirement?: string;
+  budget?: string;
+  timeline?: string;
+  [key: string]: unknown;
+}
+
+export interface ChatHistoryMessage {
+  role: string;
+  content: string;
+}
+
+export async function analyzeLead(leadData: LeadDataInput, customerMessage: string) {
   const prompt = `
 <lead_record>
-Name: ${leadData.name}
-Location: ${leadData.location}
-Property requirement: ${leadData.requirement}
-Budget: ${leadData.budget}
-Buying timeline: ${leadData.timeline}
+Name: ${leadData.name ?? ''}
+Location: ${leadData.location ?? ''}
+Property requirement: ${leadData.requirement ?? ''}
+Budget: ${leadData.budget ?? ''}
+Buying timeline: ${leadData.timeline ?? ''}
 </lead_record>
 <customer_message>
 ${customerMessage}
@@ -30,7 +44,7 @@ ${customerMessage}
   return JSON.parse(responseContent);
 }
 
-export async function generateCallBrief(analysis: any) {
+export async function generateCallBrief(analysis: Record<string, unknown>) {
   const prompt = `Analysis:\n${JSON.stringify(analysis)}`;
   
   const model = genAI.getGenerativeModel({
@@ -44,7 +58,7 @@ export async function generateCallBrief(analysis: any) {
   return JSON.parse(responseContent);
 }
 
-export async function debriefCall(previousAnalysis: any, leadRecord: any, callNotes: string, chatSummary: string = "") {
+export async function debriefCall(previousAnalysis: Record<string, unknown>, leadRecord: Record<string, unknown>, callNotes: string, chatSummary: string = "") {
   const prompt = `
 <previous_analysis>
 ${JSON.stringify(previousAnalysis)}
@@ -71,7 +85,7 @@ ${callNotes}
   return JSON.parse(responseContent);
 }
 
-export async function chatWithLead(leadContext: any, newQuestion: string, history: any[] = []) {
+export async function chatWithLead(leadContext: Record<string, unknown>, newQuestion: string, history: ChatHistoryMessage[] = []) {
   const contextStr = `
 <lead_context>
 ${JSON.stringify(leadContext)}

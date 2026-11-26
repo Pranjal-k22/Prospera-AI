@@ -40,6 +40,9 @@ yarn-error.log*
 # temporary & testing artifacts
 .chrome-temp/
 
+# documentation
+/docs/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

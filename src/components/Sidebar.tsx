@@ -42,9 +42,9 @@ export default function Sidebar() {
         </Link>
       </nav>
       <div className="sidebar-foot">
-        <div className="user-avatar">AM</div>
+        <div className="user-avatar">P</div>
         <div>
-          <b>Aryaman Modi</b>
+          <b>Pranjal</b>
           <small>Advisory Partner</small>
         </div>
       </div>

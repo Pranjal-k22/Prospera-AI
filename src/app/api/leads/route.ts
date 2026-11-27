@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/mongoose';
 import Lead from '@/models/Lead';
-import { analyzeLead } from '@/lib/ai/provider';
+import { analyzeLead, AiProviderError } from '@/lib/ai/provider';
 import { calculatePriority } from '@/lib/ai/scoring';
+import { requireAuth } from '@/lib/auth';
 
 export async function POST(req: Request) {
   try {
+    const auth = await requireAuth(req, ['admin', 'broker']);
+    if (auth.response) return auth.response;
+
     await connectToDatabase();
     const body = await req.json();
     const { name, location, requirement, budget, timeline, message } = body;
@@ -37,12 +41,18 @@ export async function POST(req: Request) {
     return NextResponse.json(newLead, { status: 201 });
   } catch (error: unknown) {
     console.error('Error creating lead:', error);
+    if (error instanceof AiProviderError) {
+      return NextResponse.json({ error: error.message }, { status: 502 });
+    }
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to create lead' }, { status: 500 });
   }
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const auth = await requireAuth(req, ['admin', 'broker']);
+    if (auth.response) return auth.response;
+
     await connectToDatabase();
     
     // Fetch all leads, sorted by priority score (descending)

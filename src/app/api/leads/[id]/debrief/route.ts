@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/mongoose';
 import Lead from '@/models/Lead';
-import { debriefCall } from '@/lib/ai/provider';
+import { debriefCall, AiProviderError } from '@/lib/ai/provider';
 import { calculatePriority } from '@/lib/ai/scoring';
+import { requireAuth } from '@/lib/auth';
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const auth = await requireAuth(req, ['admin', 'broker']);
+    if (auth.response) return auth.response;
+
     await connectToDatabase();
     
     const resolvedParams = await params;
@@ -73,6 +77,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json(lead, { status: 200 });
   } catch (error: unknown) {
     console.error('Error during debrief:', error);
+    if (error instanceof AiProviderError) {
+      return NextResponse.json({ error: error.message }, { status: 502 });
+    }
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Debrief failed' }, { status: 500 });
   }
 }

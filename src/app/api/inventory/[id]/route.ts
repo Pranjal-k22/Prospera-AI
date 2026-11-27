@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/mongoose';
 import Property from '@/models/Property';
+import { requireAuth } from '@/lib/auth';
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const auth = await requireAuth(req, ['admin', 'broker']);
+    if (auth.response) return auth.response;
+
     await connectToDatabase();
     const resolvedParams = await params;
     const body = await req.json();
@@ -17,6 +21,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const auth = await requireAuth(req, ['admin', 'broker']);
+    if (auth.response) return auth.response;
+
     await connectToDatabase();
     const resolvedParams = await params;
     const property = await Property.findByIdAndDelete(resolvedParams.id);

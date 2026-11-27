@@ -1,13 +1,8 @@
 import { NextResponse } from 'next/server';
-import { verifyAuth } from '@/lib/auth';
-import { cookies } from 'next/headers';
+import { requireAuth } from '@/lib/auth';
 import connectToDatabase from '@/lib/mongoose';
 import Lead from '@/models/Lead';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GROQ_API_KEY || '';
-const genAI = new GoogleGenerativeAI(apiKey || 'dummy_api_key_for_build');
-const modelName = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+import { getGenerativeModel, AiProviderError } from '@/lib/ai/provider';
 
 const globalImageSets = [
   [
@@ -35,12 +30,9 @@ const globalImageSets = [
 
 export async function POST(req: Request) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('token')?.value;
-    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    
-    const user = (await verifyAuth(token)) as { name?: string } | null;
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requireAuth(req, ['customer', 'admin']);
+    if (auth.response) return auth.response;
+    const user = auth.user;
 
     const { query } = await req.json();
 
@@ -69,8 +61,7 @@ Output JSON strictly matching this schema:
 }
     `;
 
-    const model = genAI.getGenerativeModel({
-      model: modelName,
+    const model = getGenerativeModel({
       systemInstruction: systemPrompt,
       generationConfig: { responseMimeType: "application/json", temperature: 0.5 }
     });
@@ -140,6 +131,9 @@ Output JSON strictly matching this schema:
     return NextResponse.json(matchData, { status: 200 });
   } catch (error: unknown) {
     console.error('Error generating matches:', error);
+    if (error instanceof AiProviderError) {
+      return NextResponse.json({ error: error.message }, { status: 502 });
+    }
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Matching failed' }, { status: 500 });
   }
 }

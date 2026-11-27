@@ -14,10 +14,18 @@ export interface Scores {
   information_completeness: number;
 }
 
+export function calculateRawScore(s: Scores): number {
+  return Object.entries(W).reduce((a, [k, w]) => a + (s[k as keyof Scores] ?? 0) * w, 0) * 10;
+}
+
+export function calculateDecay(daysSinceContact = 0): number {
+  return Math.min(15, Math.max(0, daysSinceContact - 1) * 3);
+}
+
 export function calculatePriority(s: Scores, daysSinceContact = 0) {
-  const raw = Object.entries(W).reduce((a, [k, w]) => a + (s[k as keyof Scores] ?? 0) * w, 0) * 10; // 0-100
-  const decay = Math.min(15, Math.max(0, daysSinceContact - 1) * 3);                  // staleness penalty
-  const score = Math.round(Math.max(0, raw - decay));
+  const raw = calculateRawScore(s);
+  const decay = calculateDecay(daysSinceContact);
+  const score = Math.round(Math.max(0, Math.min(100, raw - decay)));
   const tier = score >= 70 ? "hot" : score >= 45 ? "warm" : "cold";
   return { score, tier, atRisk: tier === "hot" && daysSinceContact >= 3 };
 }

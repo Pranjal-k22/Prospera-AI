@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/mongoose';
 import Lead from '@/models/Lead';
-import { chatWithLead } from '@/lib/ai/provider';
+import { chatWithLead, AiProviderError } from '@/lib/ai/provider';
+import { requireAuth } from '@/lib/auth';
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const auth = await requireAuth(req, ['admin', 'broker']);
+    if (auth.response) return auth.response;
+
     await connectToDatabase();
     
     const resolvedParams = await params;
@@ -57,6 +61,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ response: fullResponse }, { status: 200 });
   } catch (error: unknown) {
     console.error('Error in chat:', error);
+    if (error instanceof AiProviderError) {
+      return NextResponse.json({ error: error.message }, { status: 502 });
+    }
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Chat failed' }, { status: 500 });
   }
 }

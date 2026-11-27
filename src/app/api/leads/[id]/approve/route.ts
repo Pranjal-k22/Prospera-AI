@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import connectMongo from '@/lib/mongoose';
 import Lead from '@/models/Lead';
+import { requireAuth } from '@/lib/auth';
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const auth = await requireAuth(req, ['admin', 'broker']);
+    if (auth.response) return auth.response;
+
     await connectMongo();
     
     const resolvedParams = await params;

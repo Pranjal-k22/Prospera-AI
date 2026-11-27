@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import Property from '@/models/Property';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { getGenerativeModel, AiProviderError } from '@/lib/ai/provider';
+import { requireAuth } from '@/lib/auth';
 
-const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GROQ_API_KEY || '';
-const genAI = new GoogleGenerativeAI(apiKey || 'dummy_api_key_for_build');
-const modelName = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
-
-export async function POST() {
+export async function POST(req: Request) {
   try {
+    const auth = await requireAuth(req, ['admin', 'broker']);
+    if (auth.response) return auth.response;
+
     if (!process.env.MONGODB_URI) {
       throw new Error('MONGODB_URI is not defined');
     }
@@ -28,8 +28,7 @@ export async function POST() {
       - description: string (2-3 sentences of luxurious, compelling description)
     `;
 
-    const model = genAI.getGenerativeModel({
-      model: modelName,
+    const model = getGenerativeModel({
       generationConfig: { responseMimeType: "application/json", temperature: 0.7 }
     });
 
@@ -61,12 +60,10 @@ export async function POST() {
       "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80",
       "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&q=80",
       "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80",
-      "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800&q=80",
       "https://images.unsplash.com/photo-1600607686527-6fb886090705?w=800&q=80",
       "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800&q=80",
       "https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=800&q=80",
-      "https://images.unsplash.com/photo-1600573472591-ee6b68d14c68?w=800&q=80",
-      "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80"
+      "https://images.unsplash.com/photo-1600573472591-ee6b68d14c68?w=800&q=80"
     ];
 
     const existingProperties = await Property.find({}, 'images').lean();
@@ -97,6 +94,9 @@ export async function POST() {
     return NextResponse.json({ success: true, count: saved.length, properties: saved });
   } catch (error: unknown) {
     console.error('Error syncing MLS data:', error);
+    if (error instanceof AiProviderError) {
+      return NextResponse.json({ error: error.message }, { status: 502 });
+    }
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Sync failed' }, { status: 500 });
   }
 }

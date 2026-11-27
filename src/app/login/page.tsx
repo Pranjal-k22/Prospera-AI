@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Icon } from '@/components/Icon';
 import { PullCord } from '@/components/ui/PullCord';
-import { BRAND_NAME, BRAND_FULL_NAME, getStorageItem, setStorageItem } from '@/lib/brand';
+import { BRAND_NAME, BRAND_FULL_NAME, getStorageItem } from '@/lib/brand';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -22,10 +22,6 @@ export default function Login() {
 
   const handleToggleLight = useCallback((light: boolean) => {
     setIsLight(light);
-    setStorageItem('theme', light ? 'light' : 'dark');
-    if (typeof document !== 'undefined') {
-      document.documentElement.setAttribute('data-theme', light ? 'light' : 'dark');
-    }
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -67,12 +63,12 @@ export default function Login() {
     >
       {/* Physical Pull Cord Lamp & Animated Room Lighting Wave */}
       <PullCord
-        isLight={isLight}
+        initialLight={isLight}
         onToggleLight={handleToggleLight}
         className="fixed inset-0 pointer-events-none z-0"
       />
 
-      {/* Top Bar: Back to Home navigation & Room Light status pill */}
+      {/* Top Bar: Back to Home navigation */}
       <header className="absolute top-0 inset-x-0 z-20 flex items-center justify-between p-4 sm:p-8 max-w-7xl mx-auto w-full">
         <Link
           href="/"
@@ -83,33 +79,10 @@ export default function Login() {
           <Icon name="arrow" size={13} className="rotate-180" />
           <span>Back to Home</span>
         </Link>
-
-        <button
-          type="button"
-          onClick={() => handleToggleLight(!isLight)}
-          className={`group flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-medium border backdrop-blur-md transition-all duration-300 pointer-events-auto ${
-            isLight
-              ? 'bg-black/5 hover:bg-black/10 border-black/10 text-[#5c534f]'
-              : 'bg-white/5 hover:bg-white/10 border-white/10 text-[#8c94a0]'
-          }`}
-          title="Toggle lighting or pull the cord directly"
-        >
-          <span
-            className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all duration-300 ${
-              isLight
-                ? 'bg-[#e8a33b] shadow-[0_0_8px_rgba(232,163,59,0.9)]'
-                : 'bg-white/40'
-            }`}
-          />
-          <span>{isLight ? 'Warm Dusk' : 'Obsidian Night'}</span>
-          <span className="hidden sm:inline text-[10px] uppercase tracking-wider font-semibold opacity-60">
-            (Pull cord)
-          </span>
-        </button>
       </header>
 
       {/* Main Luxury Deal Room Auth Card */}
-      <main className="relative z-20 w-full max-w-md px-4 pt-[290px] sm:pt-[310px] pb-16 flex flex-col items-center">
+      <main className="relative z-20 w-full max-w-md px-4 pt-[240px] sm:pt-[290px] pb-16 flex flex-col items-center">
         <div
           className={`panel w-full p-8 sm:p-9 rounded-2xl border transition-all duration-500 backdrop-blur-xl ${
             isLight

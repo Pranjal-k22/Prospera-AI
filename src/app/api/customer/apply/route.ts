@@ -1,17 +1,13 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/mongoose';
 import Lead from '@/models/Lead';
-import { verifyAuth } from '@/lib/auth';
-import { cookies } from 'next/headers';
+import { requireAuth } from '@/lib/auth';
 
 export async function POST(req: Request) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('token')?.value;
-    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    
-    const user = (await verifyAuth(token)) as { name?: string; email?: string } | null;
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requireAuth(req, ['customer', 'admin']);
+    if (auth.response) return auth.response;
+    const user = auth.user;
 
     await connectToDatabase();
     
@@ -75,12 +71,9 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('token')?.value;
-    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    
-    const user = (await verifyAuth(token)) as { name?: string; email?: string } | null;
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requireAuth(req, ['customer', 'admin']);
+    if (auth.response) return auth.response;
+    const user = auth.user;
 
     const { searchParams } = new URL(req.url);
     const leadId = searchParams.get('id');
@@ -92,8 +85,10 @@ export async function DELETE(req: Request) {
     const lead = await Lead.findById(leadId);
     if (!lead) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     
-    // Ensure the customer can only delete their own leads
-    if (lead.name !== user.name) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    // Ensure a customer can only delete/withdraw their own leads
+    if (user.role !== 'admin' && lead.name !== user.name) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     lead.status = 'withdrawn';
     lead.closeReason = 'Withdrawn by Customer';

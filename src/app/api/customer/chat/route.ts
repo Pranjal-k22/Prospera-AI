@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GROQ_API_KEY || '';
-const genAI = new GoogleGenerativeAI(apiKey || 'dummy_api_key_for_build');
-const modelName = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+import { getGenerativeModel, AiProviderError } from '@/lib/ai/provider';
+import { requireAuth } from '@/lib/auth';
 
 export async function POST(req: Request) {
   try {
+    const auth = await requireAuth(req, ['customer', 'admin']);
+    if (auth.response) return auth.response;
+
     const { messages } = await req.json();
     
     if (!messages || !Array.isArray(messages)) {
@@ -20,8 +20,7 @@ Respond in short, punchy paragraphs. Use formatting to make it readable.
 If they ask about properties, ask them about their preferred location, configuration, and budget.
 Remind them they can use the AI Matchmaker form on this page to instantly generate global luxury property recommendations!`;
 
-    const model = genAI.getGenerativeModel({
-      model: modelName,
+    const model = getGenerativeModel({
       systemInstruction: systemPrompt,
       generationConfig: { maxOutputTokens: 512, temperature: 0.7 }
     });
@@ -37,6 +36,9 @@ Remind them they can use the AI Matchmaker form on this page to instantly genera
     return NextResponse.json({ reply }, { status: 200 });
   } catch (error: unknown) {
     console.error('Error in customer chat:', error);
+    if (error instanceof AiProviderError) {
+      return NextResponse.json({ error: error.message }, { status: 502 });
+    }
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Chat failed' }, { status: 500 });
   }
 }

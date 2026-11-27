@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectMongo from '@/lib/mongoose';
 import Lead from '@/models/Lead';
+import { requireAuth } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
+    const auth = await requireAuth(req, ['customer', 'admin']);
+    if (auth.response) return auth.response;
+    const user = auth.user;
+
     await connectMongo();
     const { leadId } = await req.json();
 
@@ -14,6 +19,11 @@ export async function POST(req: NextRequest) {
     const lead = await Lead.findById(leadId);
     if (!lead) {
       return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
+    }
+
+    // Object-level check: customer can only escalate their own lead
+    if (user.role !== 'admin' && lead.name !== user.name) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Increase priority to HOT 99

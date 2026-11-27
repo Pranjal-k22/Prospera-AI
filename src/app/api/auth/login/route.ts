@@ -26,7 +26,13 @@ export async function POST(req: Request) {
     const token = await signToken({ id: user._id.toString(), email: user.email, role: user.role, name: user.name });
 
     const response = NextResponse.json({ success: true, role: user.role }, { status: 200 });
-    response.cookies.set('token', token, { httpOnly: true, path: '/', maxAge: 86400 });
+    response.cookies.set('token', token, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: 86400
+    });
     return response;
   } catch (error: unknown) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "An error occurred" }, { status: 500 });

@@ -1,11 +1,8 @@
 import { NextResponse } from 'next/server';
 import Lead from '@/models/Lead';
 import mongoose from 'mongoose';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GROQ_API_KEY || '';
-const genAI = new GoogleGenerativeAI(apiKey || 'dummy_api_key_for_build');
-const modelName = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+import { getGenerativeModel, AiProviderError } from '@/lib/ai/provider';
+import { requireAuth } from '@/lib/auth';
 
 const globalImageSets = [
   [
@@ -33,6 +30,9 @@ const globalImageSets = [
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const auth = await requireAuth(req, ['admin', 'broker']);
+    if (auth.response) return auth.response;
+
     const resolvedParams = await params;
     
     if (!process.env.MONGODB_URI) {
@@ -77,8 +77,7 @@ Output JSON strictly matching this schema:
 }
     `;
 
-    const model = genAI.getGenerativeModel({
-      model: modelName,
+    const model = getGenerativeModel({
       systemInstruction: systemPrompt,
       generationConfig: { responseMimeType: "application/json", temperature: 0.5 }
     });
@@ -108,6 +107,9 @@ Output JSON strictly matching this schema:
     return NextResponse.json(matchData, { status: 200 });
   } catch (error: unknown) {
     console.error('Error generating matches:', error);
+    if (error instanceof AiProviderError) {
+      return NextResponse.json({ error: error.message }, { status: 502 });
+    }
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Matching failed' }, { status: 500 });
   }
 }

@@ -1,12 +1,16 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/mongoose';
 import Lead from '@/models/Lead';
+import { requireAuth } from '@/lib/auth';
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const auth = await requireAuth(req, ['admin', 'broker']);
+    if (auth.response) return auth.response;
+
     await connectToDatabase();
     
-    // In Next 15, `params` is a Promise, so we must await it.
+    // In Next 15+, `params` is a Promise, so we must await it.
     const resolvedParams = await params;
     const { id } = resolvedParams;
 

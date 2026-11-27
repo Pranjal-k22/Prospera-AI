@@ -59,6 +59,13 @@ export default function RootLayout({
       className={`${urbanist.variable} ${gilda.variable} ${outfit.variable} ${oswald.variable} ${playfair.variable} ${cursive.variable}`}
       suppressHydrationWarning
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem('prospera-theme')||localStorage.getItem('theme')||'dark';document.documentElement.setAttribute('data-theme',t);document.documentElement.dataset.theme=t;}catch(e){}`,
+          }}
+        />
+      </head>
       <body className="antialiased bg-[#0a0d12] text-[#e7eaf0]">
         <ToastProvider>
           <div className="app-shell">

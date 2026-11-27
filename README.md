@@ -8,7 +8,7 @@
 [![Tailwind CSS 4](https://img.shields.io/badge/Tailwind_CSS-4.0-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![TypeScript 5](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas_%26_Mongoose-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
-[![Groq AI](https://img.shields.io/badge/Groq-Llama_3.3_70B-F05A28?style=for-the-badge&logo=fastapi&logoColor=white)](https://groq.com/)
+[![Google Gemini](https://img.shields.io/badge/Google_Gemini-Gemini_Flash-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
 [![Framer Motion](https://img.shields.io/badge/Framer_Motion-14.9-black?style=for-the-badge&logo=framer&logoColor=white)](https://www.framer.com/motion/)
 
 <p align="center">
@@ -61,7 +61,7 @@
 ### 4. 🤖 Global AI Copilot ("Ask AI")
 * **Gooey Spring Pill:** Fixed bottom-right chat launcher that expands from an elegant compact pill into a 320px search/chat cockpit.
 * **Staggered Suggestion Bubbles:** Rising contextual prompts (120ms blur-to-sharp stagger) tuned to the user's active page and selected estate.
-* **Streaming Deal Room Intelligence:** Real-time conversational AI streaming powered by Groq (Llama 3.3 70B) and Gemini, providing instant property analysis, legal breakdown, and investment yield projections.
+* **Streaming Deal Room Intelligence:** Real-time conversational AI powered by Google Generative AI (`gemini-2.0-flash` or configured `GEMINI_MODEL`), providing instant property analysis, legal breakdown, and investment yield projections.
 
 ### 5. 🏢 Broker Deal Desk & Lead Hub (`/admin`, `/broker`)
 * **Deterministic 5-Dimension Lead Scoring:** Algorithmically evaluates inquiries across *Intent*, *Timeline*, *Budget*, *Engagement*, and *Data Completeness*, applying decay penalties for uncontacted leads.
@@ -167,58 +167,40 @@ flowchart TD
 
 ---
 
-## 🚀 Quick Start
+## 💻 Run Locally
 
-### Prerequisites
+### 1. Prerequisites
 - **Node.js**: v20.0.0 or higher
-- **MongoDB**: Local MongoDB instance or free MongoDB Atlas URI
-- **Groq API Key**: (Optional for AI copilot actions, get one at [console.groq.com](https://console.groq.com/))
+- **MongoDB**: MongoDB Atlas URI or local instance
 
-### 1. Clone & Install
+### 2. Environment Variables
+Create a `.env.local` file in the root directory (refer to `.env.example`). The following variables are required:
+- `GEMINI_API_KEY`: API key from Google AI Studio (required for AI lead scoring and concierge).
+- `GEMINI_MODEL`: Model name (e.g. `gemini-2.0-flash`, `gemini-1.5-flash-8b`).
+- `MONGODB_URI`: MongoDB connection string.
+- `JWT_SECRET`: Secret key for signing HS256 JWT tokens (minimum 32 characters).
+- `NEXT_PUBLIC_APP_URL`: Base application URL (`http://localhost:3000`).
+
+### 3. Install Dependencies
 ```bash
-git clone https://github.com/your-username/prospera-ai.git
-cd prospera-ai
 npm install
 ```
 
-### 2. Configure Environment Variables
-Create a `.env.local` file in the root directory:
-```env
-# AI Intelligence Engine
-GROQ_API_KEY=your_groq_api_key_here
-GROQ_MODEL=llama-3.3-70b-versatile
-
-# Database Persistence
-MONGODB_URI=mongodb://localhost:27017/prospera-ai
-
-# Security & Authentication (minimum 32-character secret)
-JWT_SECRET=super_secret_jwt_key_must_be_at_least_32_characters_long
-
-# Application Base URL
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-```
-
-### 3. Seed Database
-Populate verified properties and sample deal room leads:
+### 4. Development & Verification Commands
 ```bash
-npx tsx scripts/seed.ts
-```
-
-### 4. Run Development Server
-```bash
+# Start local development server
 npm run dev
-```
-Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 
-### 5. Production Build & Lint
-```bash
-# Typecheck
+# Run automated test suite (Vitest)
+npm test
+
+# Static type check
 npx tsc --noEmit
 
 # Lint check (ESLint 9)
 npm run lint
 
-# Production build (Turbopack)
+# Production build
 npm run build
 ```
 
